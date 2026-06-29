@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>SecureChat</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--text:#101828;--muted:#667085;--line:#e4e7ec;--accent:#6d5dfc;--accent2:#8b7cff;--red:#f04438}
+html,body{height:100%;overflow:hidden}
+body{font-family:Inter,system-ui,Arial,sans-serif;background:linear-gradient(135deg,#eef2ff,#fff7ed);color:var(--text)}
+button,input,textarea{font-family:inherit}button{cursor:pointer}
+#auth{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:22px}
+.auth-card{width:390px;max-width:96vw;background:rgba(255,255,255,.94);border-radius:26px;padding:30px;box-shadow:0 30px 90px rgba(16,24,40,.18)}
+.logo{width:74px;height:74px;border-radius:22px;background:linear-gradient(135deg,var(--accent),#a855f7);display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;font-weight:900;margin:0 auto 14px}
+.auth-title{text-align:center;font-size:30px;font-weight:900;color:var(--accent)}
+.auth-sub{text-align:center;color:var(--muted);font-size:13px;margin:6px 0 20px}
+.tabs{display:flex;background:#eef2ff;border-radius:14px;padding:4px;margin-bottom:18px}
+.tab{flex:1;border:0;border-radius:11px;background:transparent;padding:11px;font-weight:900;color:#667085}
+.tab.active{background:linear-gradient(135deg,var(--accent),var(--accent2));color:white}
+.field{margin-bottom:12px}.field input{width:100%;height:50px;border:1px solid var(--line);border-radius:15px;padding:0 14px;font-size:16px;outline:none;background:white}
+.auth-btn{width:100%;height:52px;border:0;border-radius:15px;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;font-size:16px;font-weight:900;margin-top:6px}
+.err{min-height:18px;text-align:center;color:var(--red);font-size:13px;margin-top:12px}
+#app{height:100dvh;display:none;flex-direction:column;padding:12px;gap:12px}
+#app.on{display:flex}
+.topbar{height:66px;background:rgba(255,255,255,.94);border-radius:24px;box-shadow:0 10px 30px rgba(16,24,40,.08);display:flex;align-items:center;gap:12px;padding:0 14px;flex-shrink:0}
+.top-logo{width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,var(--accent),#a855f7);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:900}
+.brand{font-size:20px;font-weight:900;color:var(--accent)}.tag{font-size:11px;color:var(--muted);font-weight:700}
+.top-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+.me{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#f8faff;border-radius:999px;padding:5px 12px 5px 5px}
+.avatar{width:36px;height:36px;min-width:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--accent),#a855f7);color:white;font-weight:900;overflow:hidden}
+.pill{font-size:12px;font-weight:900;border-radius:999px;padding:7px 11px;white-space:nowrap}.pill.live{color:#067647;background:#ecfdf3;border:1px solid #abefc6}.pill.off{color:#b42318;background:#fef3f2;border:1px solid #fecdca}
+.icon-btn{width:38px;height:38px;border:1px solid var(--line);background:white;border-radius:12px;font-size:17px}
+.main{flex:1;min-height:0;display:flex;gap:12px}
+.sidebar{width:340px;min-width:340px;background:rgba(255,255,255,.94);border-radius:24px;box-shadow:0 18px 50px rgba(16,24,40,.08);display:flex;flex-direction:column;overflow:hidden}
+.search{padding:14px;border-bottom:1px solid var(--line);flex-shrink:0}.search input{width:100%;height:48px;border:1px solid var(--line);border-radius:15px;background:#f2f4f7;padding:0 14px;font-size:16px;outline:none}
+.section{font-size:11px;font-weight:900;color:var(--accent);letter-spacing:.12em;padding:12px 16px 4px}
+#contacts{flex:1;overflow:auto;padding:6px 8px 12px}
+.contact{display:flex;align-items:center;gap:12px;padding:12px;border-radius:18px;cursor:pointer}.contact:hover,.contact.active{background:#eef2ff}.contact .name{font-weight:900}.contact .last{font-size:12px;color:var(--muted);margin-top:3px}
+.empty{text-align:center;color:var(--muted);padding:36px 18px;line-height:1.5}
+.chat{flex:1;min-width:0;background:rgba(255,255,255,.94);border-radius:24px;box-shadow:0 18px 50px rgba(16,24,40,.08);display:flex;flex-direction:column;overflow:hidden}
+.empty-chat{flex:1;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--muted);padding:26px}
+.chat-head{display:none;align-items:center;gap:12px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.96);padding:12px 14px;flex-shrink:0}.chat-head.on{display:flex}
+.back{display:none;border:0;background:transparent;font-size:28px}.chat-title{font-size:18px;font-weight:900}.chat-status{font-size:12px;color:var(--muted)}
+.chat-actions{margin-left:auto;display:flex;gap:7px}.chat-actions button{width:38px;height:38px;border-radius:13px;border:1px solid var(--line);background:#fff;font-size:17px}
+.messages{display:none;flex:1;overflow:auto;padding:16px;flex-direction:column;gap:8px}.messages.on{display:flex}
+.msg{max-width:76%;padding:10px 13px;border-radius:18px;line-height:1.45;word-break:break-word}.msg.me{align-self:flex-end;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;border-bottom-right-radius:5px}.msg.them{align-self:flex-start;background:white;border:1px solid var(--line);border-bottom-left-radius:5px}.msg small{display:block;opacity:.65;font-size:10px;margin-top:4px}.msg img{max-width:230px;border-radius:12px;display:block}.file-msg{display:flex;gap:8px;align-items:center;font-weight:800}
+.composer{display:none;border-top:1px solid var(--line);background:#fff;padding:10px;gap:7px;align-items:flex-end;flex-shrink:0}.composer.on{display:flex!important}
+.composer textarea{flex:1;min-height:44px;max-height:110px;resize:none;border:1px solid var(--line);border-radius:20px;padding:12px 14px;font-size:15px;outline:none}
+.tool{width:42px;height:42px;border-radius:14px;border:1px solid var(--line);background:#fff;font-size:18px;flex-shrink:0}.send{width:44px;height:44px;border:0;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));color:white;font-weight:900;font-size:18px;flex-shrink:0}
+.emoji-panel{display:none;position:absolute;bottom:72px;left:10px;right:10px;background:white;border:1px solid var(--line);border-radius:18px;padding:10px;box-shadow:0 20px 60px rgba(16,24,40,.18);z-index:10}.emoji-panel.on{display:flex;flex-wrap:wrap;gap:6px}.emoji-panel button{font-size:24px;width:38px;height:38px;border:0;background:#f8faff;border-radius:10px}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:60;align-items:center;justify-content:center;padding:18px}.modal.on{display:flex}.modal-card{width:min(430px,96vw);background:white;border-radius:24px;padding:22px;box-shadow:0 30px 80px rgba(16,24,40,.25)}.modal-title{font-size:22px;font-weight:900;color:var(--accent);margin-bottom:14px}.line{padding:10px 0;border-bottom:1px solid var(--line)}.line b{display:block;font-size:12px;color:var(--muted);margin-bottom:3px}.close{width:100%;height:44px;margin-top:16px;border:0;border-radius:14px;background:#eef2ff;color:var(--accent);font-weight:900}
+.call-screen{display:none;position:fixed;inset:0;background:#101828;z-index:80;color:white;align-items:center;justify-content:center;flex-direction:column;gap:18px}.call-screen.on{display:flex}.call-video{width:min(680px,92vw);height:45vh;background:#000;border-radius:20px;overflow:hidden;display:none;position:relative}.call-video video{width:100%;height:100%;object-fit:cover}.call-video.on{display:block}.call-controls{display:flex;gap:14px}.call-controls button{width:58px;height:58px;border-radius:50%;border:0;font-size:22px}.end{background:var(--red);color:white}
+.toast{display:none;position:fixed;top:14px;right:14px;background:white;border:1px solid var(--line);border-radius:14px;padding:12px 14px;z-index:90;box-shadow:0 15px 40px rgba(16,24,40,.16)}.toast.on{display:block}.hidden{display:none}
+@media(max-width:760px){#app{padding:0;gap:0;height:100dvh}.topbar{height:64px;border-radius:0;padding:0 9px;gap:8px}.brand{font-size:17px}.tag{font-size:10px}.me span{display:none}.pill{font-size:11px;padding:6px 9px}.main{gap:0;height:calc(100dvh - 64px);min-height:0}.sidebar{width:100%;min-width:100%;border-radius:0;box-shadow:none}.sidebar.hide{display:none}.chat{display:none;border-radius:0;box-shadow:none;height:calc(100dvh - 64px);max-height:calc(100dvh - 64px)}.chat.mobile-on{display:flex!important}.back{display:inline-flex}.chat-head{padding-left:6px;flex-shrink:0}.chat-actions button{width:35px;height:35px}.messages.on{display:flex!important;flex:1;min-height:0;overflow:auto;padding-bottom:92px}.composer.on{display:flex!important;position:fixed;left:0;right:0;bottom:0;padding:8px;padding-bottom:calc(8px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--line);z-index:9999}.tool{width:38px;height:38px}.send{width:40px;height:40px}}
+
+/* WELCOME PAGE */
+#welcome{
+  position:fixed;
+  inset:0;
+  z-index:40;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:22px;
+  background:linear-gradient(135deg,#07111f,#172554);
+}
+.welcome-card{
+  width:430px;
+  max-width:96vw;
+  background:rgba(17,24,39,.94);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:30px;
+  padding:34px 28px;
+  text-align:center;
+  box-shadow:0 30px 90px rgba(0,0,0,.45);
+}
+.welcome-logo{
+  width:86px;
+  height:86px;
+  margin:0 auto 18px;
+  border-radius:26px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:34px;
+  font-weight:900;
+  color:#052e16;
+  background:linear-gradient(135deg,#25d366,#128c7e);
+}
+.welcome-title{
+  font-size:34px;
+  font-weight:900;
+  margin-bottom:8px;
+}
+.welcome-sub{
+  color:#94a3b8;
+  line-height:1.5;
+  margin-bottom:22px;
+}
+.welcome-features{
+  text-align:left;
+  display:grid;
+  gap:10px;
+  margin:22px 0;
+}
+.welcome-feature{
+  background:rgba(255,255,255,.06);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:16px;
+  padding:12px 14px;
+  color:#e5e7eb;
+  font-weight:800;
+}
+.welcome-btn{
+  width:100%;
+  height:54px;
+  border:0;
+  border-radius:16px;
+  background:linear-gradient(135deg,#25d366,#128c7e);
+  color:#052e16;
+  font-size:17px;
+  font-weight:900;
+  cursor:pointer;
+  margin-top:6px;
+}
+.welcome-note{
+  color:#94a3b8;
+  font-size:12px;
+  margin-top:14px;
+}
+
+</style>
+</head>
+<body>
+<div id="welcome"><div class="welcome-card"><div class="welcome-logo">SC</div><div class="welcome-title">SecureChat</div><div class="welcome-sub">Private, fast messaging with audio/video calls, camera sharing, profiles, and secure conversations.</div><div class="welcome-features"><div class="welcome-feature">🔐 Private messaging</div><div class="welcome-feature">📞 Audio & video calls</div><div class="welcome-feature">📷 In-app camera and photo sharing</div><div class="welcome-feature">👤 Profiles and online status</div></div><button class="welcome-btn" onclick="showAuth()">Get Started →</button><div class="welcome-note">Your conversations stay between you and your contacts.</div></div></div>
+<div id="auth" style="display:none"><div class="auth-card"><div class="logo">SC</div><div class="auth-title">SecureChat</div><div class="auth-sub">Private messaging · live contacts · realtime chat</div><div class="tabs"><button id="tab-login" class="tab active" onclick="switchTab('login')">Sign in</button><button id="tab-reg" class="tab" onclick="switchTab('reg')">Register</button></div><div id="login-form"><div class="field"><input id="l-phone" placeholder="Phone number" autocomplete="username"></div><div class="field"><input id="l-pass" placeholder="Password" type="password" autocomplete="current-password"></div><button class="auth-btn" onclick="doLogin()">Sign in →</button></div><div id="reg-form" style="display:none"><div class="field"><input id="r-name" placeholder="Your name"></div><div class="field"><input id="r-phone" placeholder="Phone number"></div><div class="field"><input id="r-pass" placeholder="Password - min 8 chars" type="password"></div><button class="auth-btn" onclick="doRegister()">Create account →</button></div><div id="auth-err" class="err"></div></div></div>
+<div id="app">
+  <div class="topbar"><div class="top-logo">SC</div><div><div class="brand">SecureChat</div><div class="tag">E2EE ready · LIVE</div></div><div class="top-actions"><div class="me" onclick="openMyProfile()"><div id="me-av" class="avatar">?</div><span id="me-name">You</span></div><div id="conn-badge" class="pill off">● Connecting</div><button class="icon-btn" onclick="doLogout()">🚪</button></div></div>
+  <div class="main"><div id="sidebar" class="sidebar"><div class="search"><input id="search" placeholder="Search by name or phone..." oninput="loadContacts()"></div><div class="section">CONTACTS</div><div id="contacts"><div class="empty">Type at least 2 characters to find a contact.</div></div></div><div id="chat" class="chat"><div id="empty-chat" class="empty-chat"><div><div style="font-size:48px;margin-bottom:10px">🔐</div><h2>Select a chat</h2><p>Search and choose a contact to start messaging.</p></div></div><div id="chat-head" class="chat-head"><button class="back" onclick="backToContacts()">‹</button><div id="chat-av" class="avatar">?</div><div><div id="chat-name" class="chat-title">Contact</div><div id="chat-status" class="chat-status">Encrypted conversation</div></div><div class="chat-actions"><button onclick="startCall(false)">📞</button><button onclick="startCall(true)">🎥</button></div></div><div id="messages" class="messages"></div><div style="position:relative"><div id="emoji-panel" class="emoji-panel"></div><div id="composer" class="composer"><button class="tool" onclick="toggleEmoji()">😊</button><button class="tool" onclick="g('photo-input').click()">📷</button><button class="tool" onclick="g('file-input').click()">📎</button><textarea id="msg-input" rows="1" placeholder="Message..." onkeydown="msgKey(event)"></textarea><button class="send" onclick="sendMessage()">➤</button></div></div></div></div>
+</div>
+<input id="photo-input" class="hidden" type="file" accept="image/*" onchange="sendPhoto(event)">
+<input id="file-input" class="hidden" type="file" onchange="sendFile(event)">
+<div id="profile-modal" class="modal" onclick="if(event.target.id==='profile-modal')closeModal()"><div class="modal-card"><div class="modal-title">Profile</div><div class="line"><b>Name</b><span id="p-name">-</span></div><div class="line"><b>Phone</b><span id="p-phone">-</span></div><div class="line"><b>User ID</b><span id="p-id">-</span></div><div class="line"><b>Status</b><span>🟢 Live</span></div><button class="close" onclick="closeModal()">Close</button></div></div>
+<div id="call-screen" class="call-screen"><div id="call-title" style="font-size:28px;font-weight:900">Call</div><div id="call-sub" style="color:#d0d5dd">Connecting...</div><div id="call-video" class="call-video"><video id="local-video" autoplay muted playsinline></video></div><div class="call-controls"><button onclick="toggleMic()">🎙️</button><button onclick="toggleCam()">📷</button><button class="end" onclick="endCall()">✕</button></div></div>
+<div id="toast" class="toast"></div>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+function showAuth(){document.getElementById('welcome').style.display='none';document.getElementById('auth').style.display='flex'}
+const g=id=>document.getElementById(id),S={token:null,me:null,contacts:[],active:null,messages:{},socket:null,stream:null,mic:true,cam:true};const EMOJIS='😀 😃 😄 😁 😆 😅 😂 🙂 😊 😍 😘 😎 😢 😭 😡 👍 👎 🙏 🔥 ❤️ 🎉 ✅'.split(' ');let pc=null,currentCallUser=null,currentCallType='audio';const rtcConfig={iceServers:[{urls:'stun:stun.l.google.com:19302'},{urls:'stun:stun1.l.google.com:19302'}]};
+function toast(msg){const t=g('toast');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),3000)}function setErr(msg){g('auth-err').textContent=msg||''}function initials(name){return(name||'?').trim().slice(0,2).toUpperCase()}function convId(a,b){return[String(a),String(b)].sort().join('-')}function timeStr(v){try{return new Date(v||Date.now()).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}catch{return''}}function escapeHtml(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+async function api(path,opts={}){const headers={'Content-Type':'application/json'};if(S.token)headers.Authorization='Bearer '+S.token;const res=await fetch(path,{method:opts.method||'GET',headers,body:opts.body?JSON.stringify(opts.body):undefined});let data={};try{data=await res.json()}catch{}if(!res.ok)throw new Error(data.error||data.message||'Request failed');return data}
+function switchTab(t){g('tab-login').classList.toggle('active',t==='login');g('tab-reg').classList.toggle('active',t==='reg');g('login-form').style.display=t==='login'?'block':'none';g('reg-form').style.display=t==='reg'?'block':'none';setErr('')}
+async function doLogin(){const phone=g('l-phone').value.trim(),password=g('l-pass').value;if(!phone||!password)return setErr('Enter phone and password');try{const r=await api('/api/login',{method:'POST',body:{phone,password}});await onAuth(r.token,r.user)}catch(e){setErr(e.message)}}
+async function doRegister(){const username=g('r-name').value.trim(),phone=g('r-phone').value.trim(),password=g('r-pass').value;if(!username||!phone||!password)return setErr('Enter name, phone and password');try{const r=await api('/api/register',{method:'POST',body:{username,phone,password}});await onAuth(r.token,r.user)}catch(e){setErr(e.message)}}
+async function onAuth(token,user){S.token=token;S.me=user;localStorage.setItem('sc_token',token);localStorage.setItem('sc_user',JSON.stringify(user));g('auth').style.display='none';g('app').classList.add('on');g('me-name').textContent=user.username||'User';g('me-av').textContent=initials(user.username);connectSocket();renderContacts();setupEmoji()}
+async function loadContacts(){try{const search=(g('search').value||'').trim();if(search.length<2){S.contacts=[];renderContacts();return}const users=await api('/api/users?q='+encodeURIComponent(search));S.contacts=(Array.isArray(users)?users:[]).filter(u=>String(u.id)!==String(S.me.id))}catch(e){console.error(e);S.contacts=[];toast('Search failed: '+e.message)}renderContacts()}
+function renderContacts(){const box=g('contacts'),q=(g('search')?.value||'').trim();if(q.length<2){box.innerHTML='<div class="empty">Type at least 2 characters to find a contact.</div>';return}if(!S.contacts.length){box.innerHTML='<div class="empty">No matching contacts found.</div>';return}box.innerHTML='';S.contacts.forEach(c=>{const id=convId(S.me.id,c.id),msgs=S.messages[id]||[],last=msgs[msgs.length-1];const row=document.createElement('div');row.className='contact'+(S.active&&String(S.active.id)===String(c.id)?' active':'');row.onclick=()=>openChat(c.id);row.innerHTML=`<div class="avatar">${initials(c.username)}</div><div style="flex:1;min-width:0"><div class="name">${escapeHtml(c.username||'User')}</div><div class="last">${last?preview(last):escapeHtml(c.phone||'Tap to chat')}</div></div>`;box.appendChild(row)})}
+function preview(m){if(m.type==='image')return '📷 Photo';if(m.type==='file')return '📎 File';return escapeHtml(m.text||'Message')}
+async function openChat(userId){const c=S.contacts.find(x=>String(x.id)===String(userId));if(!c)return;S.active=c;g('empty-chat').style.display='none';g('chat-head').classList.add('on');g('messages').classList.add('on');g('composer').classList.add('on');g('composer').style.display='flex';g('chat-av').textContent=initials(c.username);g('chat-name').textContent=c.username||'User';g('chat-status').textContent=c.online?'Online':'Encrypted conversation';g('sidebar').classList.add('hide');g('chat').classList.add('mobile-on');await loadMessages();renderContacts();setTimeout(()=>{g('composer').classList.add('on');g('composer').style.display='flex'},50)}
+function backToContacts(){g('sidebar').classList.remove('hide');g('chat').classList.remove('mobile-on');g('composer').classList.remove('on');g('composer').style.display='none'}
+async function loadMessages(){if(!S.active)return;const id=convId(S.me.id,S.active.id);try{const rows=await api('/api/messages/'+encodeURIComponent(id));S.messages[id]=rows.map(m=>({id:m.id,senderId:m.senderId||m.sender_id,recipientId:m.recipientId||m.recipient_id,text:m.text||m.message||m.ciphertext||'',timestamp:m.timestamp||m.created_at,type:(m.metadata&&m.metadata.kind)||'text',data:m.metadata&&m.metadata.data,name:m.metadata&&m.metadata.name}))}catch(e){S.messages[id]=S.messages[id]||[]}renderMessages()}
+function renderMessages(){const box=g('messages');box.innerHTML='';if(!S.active)return;const id=convId(S.me.id,S.active.id);(S.messages[id]||[]).forEach(m=>{const mine=String(m.senderId)===String(S.me.id);const div=document.createElement('div');div.className='msg '+(mine?'me':'them');let content='';if(m.type==='image')content=`<img src="${m.data}">`;else if(m.type==='file')content=`<div class="file-msg">📎 ${escapeHtml(m.name||'File')}</div>`;else content=escapeHtml(m.text||'');div.innerHTML=content+`<small>${timeStr(m.timestamp)}</small>`;box.appendChild(div)});box.scrollTop=box.scrollHeight}
+async function sendMessage(){if(!S.active)return toast('Select a contact first');const input=g('msg-input'),text=input.value.trim();if(!text)return;input.value='';await addAndSend({text,type:'text'})}
+async function addAndSend(obj){const id=convId(S.me.id,S.active.id);const local={id:'local-'+Date.now(),senderId:S.me.id,recipientId:S.active.id,timestamp:new Date().toISOString(),...obj};S.messages[id]=S.messages[id]||[];S.messages[id].push(local);renderMessages();renderContacts();try{await api('/api/messages',{method:'POST',body:{conversationId:id,recipientId:S.active.id,iv:'plain',ciphertext:obj.text||obj.name||obj.type,messageType:'text',metadata:{kind:obj.type,data:obj.data,name:obj.name}}})}catch(e){toast('Send failed: '+e.message)}}
+function msgKey(e){if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage()}}function sendPhoto(e){const f=e.target.files[0];e.target.value='';if(!f||!S.active)return;const r=new FileReader();r.onload=()=>addAndSend({type:'image',data:r.result,text:'Photo',name:f.name});r.readAsDataURL(f)}function sendFile(e){const f=e.target.files[0];e.target.value='';if(!f||!S.active)return;addAndSend({type:'file',text:'File: '+f.name,name:f.name})}function setupEmoji(){const p=g('emoji-panel');p.innerHTML='';EMOJIS.forEach(x=>{const b=document.createElement('button');b.textContent=x;b.onclick=()=>{g('msg-input').value+=x;g('msg-input').focus()};p.appendChild(b)})}function toggleEmoji(){g('emoji-panel').classList.toggle('on')}
+async function createPeer(video){pc=new RTCPeerConnection(rtcConfig);S.stream=await navigator.mediaDevices.getUserMedia({audio:true,video});S.stream.getTracks().forEach(track=>pc.addTrack(track,S.stream));if(video){g('call-video').classList.add('on');g('local-video').srcObject=S.stream}pc.onicecandidate=e=>{if(e.candidate&&currentCallUser&&S.socket){S.socket.emit('call:ice-candidate',{recipientId:currentCallUser,candidate:e.candidate})}};pc.ontrack=e=>{let remote=g('remote-media');if(!remote){remote=document.createElement(video?'video':'audio');remote.id='remote-media';remote.autoplay=true;remote.playsInline=true;if(video){remote.style.width='100%';remote.style.height='100%';remote.style.objectFit='cover';g('call-video').appendChild(remote);g('call-video').classList.add('on')}else{document.body.appendChild(remote)}}remote.srcObject=e.streams[0]}}
+async function startCall(video){if(!S.active)return toast('Select a contact first');if(!S.socket||!S.socket.connected)return toast('Socket not connected');currentCallUser=S.active.id;currentCallType=video?'video':'audio';g('call-title').textContent=(video?'Video':'Audio')+' call with '+S.active.username;g('call-sub').textContent='Calling...';g('call-screen').classList.add('on');try{await createPeer(video);const offer=await pc.createOffer();await pc.setLocalDescription(offer);S.socket.emit('call:offer',{recipientId:currentCallUser,offer,callType:currentCallType})}catch(e){toast('Call failed: '+e.message);endCall()}}
+function showIncomingCall(data){const accept=confirm('Incoming '+data.callType+' call from '+data.callerName+'. Accept?');if(accept)acceptCall(data);else rejectCall(data.callerId)}async function acceptCall(data){currentCallUser=data.callerId;currentCallType=data.callType;g('call-title').textContent='Call with '+data.callerName;g('call-sub').textContent='Connecting...';g('call-screen').classList.add('on');try{await createPeer(data.callType==='video');await pc.setRemoteDescription(new RTCSessionDescription(data.offer));const answer=await pc.createAnswer();await pc.setLocalDescription(answer);S.socket.emit('call:answer',{callerId:data.callerId,answer});g('call-sub').textContent='Connected'}catch(e){toast('Could not accept call: '+e.message);endCall()}}function rejectCall(callerId){if(S.socket)S.socket.emit('call:end',{recipientId:callerId});endCall()}async function handleCallAnswer(data){if(!pc)return;await pc.setRemoteDescription(new RTCSessionDescription(data.answer));g('call-sub').textContent='Connected'}async function handleIceCandidate(data){if(!pc||!data.candidate)return;try{await pc.addIceCandidate(new RTCIceCandidate(data.candidate))}catch(e){console.error('ICE error:',e)}}function toggleMic(){S.mic=!S.mic;if(S.stream)S.stream.getAudioTracks().forEach(t=>t.enabled=S.mic)}function toggleCam(){S.cam=!S.cam;if(S.stream)S.stream.getVideoTracks().forEach(t=>t.enabled=S.cam)}function endCall(){if(currentCallUser&&S.socket)S.socket.emit('call:end',{recipientId:currentCallUser});if(pc){pc.close();pc=null}if(S.stream){S.stream.getTracks().forEach(t=>t.stop());S.stream=null}const remote=g('remote-media');if(remote)remote.remove();g('local-video').srcObject=null;g('call-screen').classList.remove('on');g('call-video').classList.remove('on');currentCallUser=null}
+function connectSocket(){if(typeof io==='undefined'){g('conn-badge').className='pill off';g('conn-badge').textContent='● Offline';return}try{S.socket=io({auth:{token:S.token},transports:['websocket','polling']});S.socket.on('connect',()=>{g('conn-badge').className='pill live';g('conn-badge').textContent='● Live'});S.socket.on('disconnect',()=>{g('conn-badge').className='pill off';g('conn-badge').textContent='● Offline'});S.socket.on('message:new',m=>{const other=String(m.senderId)===String(S.me.id)?m.recipientId:m.senderId;const id=convId(S.me.id,other);S.messages[id]=S.messages[id]||[];S.messages[id].push({id:m.id||Date.now(),senderId:m.senderId,recipientId:m.recipientId,text:m.text||m.ciphertext||'',timestamp:m.timestamp||new Date().toISOString(),type:(m.metadata&&m.metadata.kind)||'text',data:m.metadata&&m.metadata.data,name:m.metadata&&m.metadata.name});if(S.active&&String(S.active.id)===String(other))renderMessages();renderContacts()});S.socket.on('call:incoming',data=>showIncomingCall(data));S.socket.on('call:answer',data=>handleCallAnswer(data));S.socket.on('call:ice-candidate',data=>handleIceCandidate(data));S.socket.on('call:ended',()=>{toast('Call ended');endCall()});S.socket.on('call:unavailable',()=>{toast('User is not online');endCall()})}catch(e){console.error('Socket error:',e)}}
+function openMyProfile(){if(!S.me)return;g('p-name').textContent=S.me.username||'N/A';g('p-phone').textContent=S.me.phone||'N/A';g('p-id').textContent=S.me.id||'N/A';g('profile-modal').classList.add('on')}function closeModal(){g('profile-modal').classList.remove('on')}function doLogout(){localStorage.removeItem('sc_token');localStorage.removeItem('sc_user');location.reload()}(async()=>{const token=localStorage.getItem('sc_token'),user=JSON.parse(localStorage.getItem('sc_user')||'null');if(token&&user){try{document.getElementById('welcome').style.display='none';document.getElementById('auth').style.display='none';await onAuth(token,user)}catch{doLogout()}}})();
+</script>
+</body>
+</html>
