@@ -349,26 +349,80 @@ app.get("/api/messages/:cid", auth, async (req, res) => {
     res.json(r.rows.map(m => ({ id: m.id, conversationId: m.conversation_id, senderId: m.sender_id, recipientId: m.recipient_id, senderName: m.sender_name, iv: m.iv, ciphertext: m.ciphertext, messageType: m.message_type, metadata: m.metadata, delivered: m.delivered, read: !!m.read_at, timestamp: m.created_at })));
   } catch(e) { res.status(500).json({ error: "Could not load messages." }); }
 });
-
 app.post("/api/messages", auth, msgLimit, async (req, res) => {
   const { conversationId: cid, recipientId, iv, ciphertext, messageType, metadata } = req.body;
-  if (!V.convId(cid) || !V.iv(iv) || !V.cipher(ciphertext)) return res.status(400).json({ error: "Invalid message data." });
-  if (!cid.includes(req.user.id)) return res.status(403).json({ error: "Access denied." });
+
+  if (!V.convId(cid)) return res.status(400).json({ error: "Invalid conversation ID." });
+  if (!V.uuid(String(recipientId))) return res.status(400).json({ error: "Invalid recipient." });
+
+  if (!ciphertext || String(ciphertext).trim().length === 0) {
+    return res.status(400).json({ error: "Invalid message data." });
+  }
+
+  if (!cid.includes(String(req.user.id))) {
+    return res.status(403).json({ error: "Access denied." });
+  }
+
   const safe = {};
   if (metadata && typeof metadata === "object") {
-    ["fileName","fileSize","icon","imageUrl","audioUrl","waveData","duration","repTo","locN","locA","ccName","ccPhone","amount","pollQ","pollOpts"].forEach(k => { if (metadata[k] !== undefined) safe[k] = metadata[k]; });
+    ["kind", "data", "name", "fileName", "fileSize", "imageUrl", "audioUrl"].forEach(k => {
+      if (metadata[k] !== undefined) safe[k] = metadata[k];
+    });
   }
+
   try {
-    await pool.query("INSERT INTO conversations(id) VALUES($1) ON CONFLICT DO NOTHING", [cid]);
-    const online = userSockets.has(recipientId);
-    const r = await pool.query("INSERT INTO messages(conversation_id,sender_id,recipient_id,iv,ciphertext,message_type,metadata,delivered) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *", [cid, req.user.id, recipientId||null, iv, ciphertext, messageType||"text", JSON.stringify(safe), online]);
+    await pool.query(
+      "INSERT INTO conversations(id) VALUES($1) ON CONFLICT DO NOTHING",
+      [cid]
+    );
+
+    const online = userSockets.has(String(recipientId));
+
+    const r = await pool.query(
+      `INSERT INTO messages
+       (conversation_id, sender_id, recipient_id, iv, ciphertext, message_type, metadata, delivered)
+       VALUES($1,$2,$3,$4,$5,$6,$7,$8)
+       RETURNING *`,
+      [
+        cid,
+        req.user.id,
+        recipientId,
+        iv || "plain",
+        String(ciphertext),
+        messageType || "text",
+        JSON.stringify(safe),
+        online
+      ]
+    );
+
     const msg = r.rows[0];
-    const out = { id: msg.id, conversationId: msg.conversation_id, senderId: msg.sender_id, recipientId: msg.recipient_id, iv: msg.iv, ciphertext: msg.ciphertext, messageType: msg.message_type, metadata: msg.metadata, delivered: msg.delivered, read: false, timestamp: msg.created_at };
-    const s = userSockets.get(recipientId);
+
+    const out = {
+      id: msg.id,
+      conversationId: msg.conversation_id,
+      senderId: msg.sender_id,
+      recipientId: msg.recipient_id,
+      iv: msg.iv,
+      ciphertext: msg.ciphertext,
+      text: msg.ciphertext,
+      messageType: msg.message_type,
+      metadata: msg.metadata || {},
+      delivered: msg.delivered,
+      read: false,
+      timestamp: msg.created_at
+    };
+
+    const s = userSockets.get(String(recipientId));
     if (s) io.to(s).emit("message:new", out);
+
     res.status(201).json(out);
-  } catch(e) { console.error("Send:", e.message); res.status(500).json({ error: "Failed to send." }); }
-});
+  } catch (e) {
+    console.error("Send:", e.message);
+    res.status(500).json({ error: "Failed to send." });
+  }
+}); 
+
+        
 
 app.post("/api/messages/:cid/read", auth, async (req, res) => {
   const cid = req.params.cid;
