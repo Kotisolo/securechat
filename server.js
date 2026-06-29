@@ -276,16 +276,60 @@ app.post("/api/login", authLimit, async (req, res) => {
 });
 
 // Get users
+
 app.get("/api/users", auth, async (req, res) => {
+  const q = san(req.query.q || "").trim();
+
+  if (!q || q.length < 2) {
+    return res.json([]);
+  }
+
   try {
     const r = await pool.query(
-      "SELECT u.id,u.username,u.phone,u.public_key,u.bio,u.avatar_color, CASE WHEN u.last_seen>NOW()-INTERVAL '2 minutes' THEN true ELSE false END AS online FROM users u WHERE u.id!=$1 AND u.id NOT IN(SELECT blocked_id FROM blocked_users WHERE blocker_id=$1) ORDER BY u.username LIMIT 500",
-      [req.user.id]
+      `SELECT
+         u.id,
+         u.username,
+         u.phone,
+         u.public_key,
+         u.bio,
+         u.avatar_color,
+         CASE
+           WHEN u.last_seen > NOW() - INTERVAL '2 minutes'
+           THEN true
+           ELSE false
+         END AS online
+       FROM users u
+       WHERE u.id != $1
+         AND u.id NOT IN (
+           SELECT blocked_id
+           FROM blocked_users
+           WHERE blocker_id = $1
+         )
+         AND (
+           LOWER(u.username) LIKE LOWER($2)
+           OR u.phone LIKE $2
+         )
+       ORDER BY u.username
+       LIMIT 20`,
+      [req.user.id, `%${q}%`]
     );
-    res.json(r.rows.map(u => ({ id: u.id, username: u.username, phone: u.phone, publicKey: u.public_key, bio: u.bio, avatarColor: u.avatar_color, online: onlineUsers.has(u.id)||u.online })));
-  } catch(e) { res.status(500).json({ error: "Could not load contacts." }); }
-});
 
+    res.json(
+      r.rows.map(u => ({
+        id: u.id,
+        username: u.username,
+        phone: u.phone,
+        publicKey: u.public_key,
+        bio: u.bio,
+        avatarColor: u.avatar_color,
+        online: onlineUsers.has(u.id) || u.online
+      }))
+    );
+  } catch (e) {
+    console.error("Users search:", e.message);
+    res.status(500).json({ error: "Could not search contacts." });
+  }
+});
 app.patch("/api/me", auth, async (req, res) => {
   const b = req.body.bio ? san(req.body.bio).slice(0,160) : undefined;
   const c = (req.body.avatarColor && /^#[0-9a-fA-F]{6}$/.test(req.body.avatarColor)) ? req.body.avatarColor : undefined;
