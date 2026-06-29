@@ -194,27 +194,50 @@ app.use(express.static(path.join(__dirname, "."), { maxAge: "0", etag: false }))
 
 // Register
 app.post("/api/register", authLimit, async (req, res) => {
-  const { username, phone, password, publicKey, bio, avatarColor } = req.body;
+  const { username, phone, password, bio, avatarColor } = req.body;
+
   if (!V.username(username)) return res.status(400).json({ error: "Invalid username." });
-  if (!V.phone(phone))       return res.status(400).json({ error: "Invalid phone." });
+  if (!V.phone(phone)) return res.status(400).json({ error: "Invalid phone." });
   if (!V.password(password)) return res.status(400).json({ error: "Password min 6 chars." });
-  if (!V.publicKey(publicKey)) return res.status(400).json({ error: "Invalid key." });
-  const name = san(username), ph = san(phone);
-  const b = bio ? san(bio).slice(0,160) : "Hey there!";
-  const color = (avatarColor && /^#[0-9a-fA-F]{6}$/.test(avatarColor)) ? avatarColor : "#d4aa50";
+
+  const name = san(username);
+  const ph = san(phone);
+  const b = bio ? san(bio).slice(0, 160) : "Hey there!";
+  const color = avatarColor && /^#[0-9a-fA-F]{6}$/.test(avatarColor) ? avatarColor : "#6d5dfc";
+
   try {
     const ex = await pool.query("SELECT id FROM users WHERE phone=$1", [ph]);
     if (ex.rows.length) return res.status(409).json({ error: "Phone already registered." });
+
     const hash = await bcrypt.hash(password, 12);
+
     const r = await pool.query(
-      "INSERT INTO users(username,phone,password_hash,public_key,bio,avatar_color) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,username,phone,public_key,bio,avatar_color",
-      [name, ph, hash, publicKey, b, color]
+      "INSERT INTO users(username, phone, password_hash, public_key, bio, avatar_color) VALUES($1,$2,$3,$4,$5,$6) RETURNING id, username, phone, public_key, bio, avatar_color",
+      [name, ph, hash, null, b, color]
     );
+
     const u = r.rows[0];
-    const token = jwt.sign({ id: u.id, username: u.username }, JWT_SECRET, { expiresIn: "30d", algorithm: "HS256" });
+
+    const token = jwt.sign(
+      { id: u.id, username: u.username },
+      JWT_SECRET,
+      { expiresIn: "30d", algorithm: "HS256" }
+    );
+
     await auditLog("REGISTER", u.id, getIP(req));
-    res.status(201).json({ token, user: { id: u.id, username: u.username, phone: u.phone, publicKey: u.public_key, bio: u.bio, avatarColor: u.avatar_color } });
-  } catch(e) {
+
+    res.status(201).json({
+      token,
+      user: {
+        id: u.id,
+        username: u.username,
+        phone: u.phone,
+        publicKey: u.public_key,
+        bio: u.bio,
+        avatarColor: u.avatar_color
+      }
+    });
+  } catch (e) {
     console.error("Register:", e.message);
     res.status(500).json({ error: "Registration failed: " + e.message });
   }
