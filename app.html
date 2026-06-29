@@ -28,7 +28,30 @@ function switchTab(t){g('tab-login').classList.toggle('active',t==='login');g('t
 async function doLogin(){const phone=g('l-phone').value.trim(),password=g('l-pass').value;if(!phone||!password)return setErr('Enter phone and password');try{const r=await api('/api/login',{method:'POST',body:{phone,password}});await onAuth(r.token,r.user)}catch(e){setErr(e.message)}}
 async function doRegister(){const username=g('r-name').value.trim(),phone=g('r-phone').value.trim(),password=g('r-pass').value;if(!username||!phone||!password)return setErr('Enter name, phone and password');try{const r=await api('/api/register',{method:'POST',body:{username,phone,password}});await onAuth(r.token,r.user)}catch(e){setErr(e.message)}}
 async function onAuth(token,user){S.token=token;S.me=user;localStorage.setItem('sc_token',token);localStorage.setItem('sc_user',JSON.stringify(user));g('auth').style.display='none';g('app').classList.add('on');g('me-name').textContent=user.username||'User';g('me-av').textContent=initials(user.username);connectSocket();await loadContacts()}
-async function loadContacts(){try{const users=await api('/api/users');S.contacts=(Array.isArray(users)?users:[]).filter(u=>String(u.id)!==String(S.me.id))}catch(e){console.error('loadContacts error:',e);S.contacts=[];toast('Could not load contacts: '+e.message)}renderContacts()}
+async function loadContacts() {
+  try {
+    const search = (g('search').value || '').trim();
+
+    // Don't show anyone until the user searches
+    if (search.length < 2) {
+      S.contacts = [];
+      renderContacts();
+      return;
+    }
+
+    const users = await api('/api/users?q=' + encodeURIComponent(search));
+
+    S.contacts = (Array.isArray(users) ? users : []).filter(
+      u => String(u.id) !== String(S.me.id)
+    );
+
+  } catch (e) {
+    console.error('loadContacts error:', e);
+    S.contacts = [];
+  }
+
+  renderContacts();
+}
 function renderContacts(){const box=g('contacts'),q=(g('search').value||'').toLowerCase();const list=S.contacts.filter(c=>(c.username||'').toLowerCase().includes(q)||(c.phone||'').includes(q));if(!list.length){box.innerHTML='<div class="empty">No contacts yet.<br>Ask a friend to register, then refresh.</div>';return}box.innerHTML='';list.forEach(c=>{const id=convId(S.me.id,c.id),msgs=S.messages[id]||[],last=msgs[msgs.length-1];const row=document.createElement('div');row.className='contact'+(S.active&&String(S.active.id)===String(c.id)?' active':'');row.onclick=()=>openChat(c.id);row.innerHTML=`<div class="avatar">${initials(c.username)}</div><div style="min-width:0"><div class="name">${escapeHtml(c.username||'User')}</div><div class="last">${last?escapeHtml(last.text||'Message'):(c.phone?escapeHtml(c.phone):'Tap to chat')}</div></div>`;box.appendChild(row)})}
 async function openChat(userId){const c=S.contacts.find(x=>String(x.id)===String(userId));if(!c)return;S.active=c;g('empty-chat').style.display='none';g('chat-head').classList.add('on');g('messages').classList.add('on');g('composer').classList.add('on');g('chat-av').textContent=initials(c.username);g('chat-name').textContent=c.username||'User';g('sidebar').classList.add('hide');g('chat').classList.add('mobile-on');await loadMessages();renderContacts()}
 function backToContacts(){g('sidebar').classList.remove('hide');g('chat').classList.remove('mobile-on')}async function loadMessages(){if(!S.active)return;const id=convId(S.me.id,S.active.id);try{const rows=await api('/api/messages/'+encodeURIComponent(id));S.messages[id]=rows.map(m=>({id:m.id,senderId:m.senderId||m.sender_id,recipientId:m.recipientId||m.recipient_id,text:m.text||m.message||m.ciphertext||'',timestamp:m.timestamp||m.created_at}))}catch(e){console.warn('loadMessages failed:',e.message);S.messages[id]=S.messages[id]||[]}renderMessages()}
