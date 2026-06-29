@@ -5,29 +5,25 @@ const http        = require("http");
 const { Server }  = require("socket.io");
 const bcrypt      = require("bcryptjs");
 const jwt         = require("jsonwebtoken");
-const { v4: uid } = require("uuid");
 const cors        = require("cors");
 const helmet      = require("helmet");
 const rateLimit   = require("express-rate-limit");
 const { Pool }    = require("pg");
 const path        = require("path");
 const crypto      = require("crypto");
+const fs          = require("fs");
 
-const PORT   = process.env.PORT || 3000;
-const ENV    = process.env.NODE_ENV || "development";
-const ORIGIN = process.env.ALLOWED_ORIGIN || "*";
+const PORT       = process.env.PORT || 3000;
+const ENV        = process.env.NODE_ENV || "development";
+const ORIGIN     = process.env.ALLOWED_ORIGIN || "*";
 const JWT_SECRET = (process.env.JWT_SECRET && process.env.JWT_SECRET.length >= 32)
   ? process.env.JWT_SECRET
   : crypto.randomBytes(64).toString("hex");
 
-if (!process.env.JWT_SECRET) {
-  console.warn("WARNING: JWT_SECRET not set.");
-}
-
 const app    = express();
 const server = http.createServer(app);
 
-// ── TRUST PROXY — required for Railway/Heroku ─────────────────
+// REQUIRED for Railway - fixes rate limiting
 app.set("trust proxy", 1);
 
 const pool = new Pool({
@@ -72,9 +68,7 @@ function auth(req, res, next) {
 }
 
 async function auditLog(action, uid, ip, data) {
-  try {
-    await pool.query("INSERT INTO audit_log(action,user_id,ip_address,details) VALUES($1,$2,$3,$4)", [action, uid||null, ip, JSON.stringify(data||{})]);
-  } catch(e) {}
+  try { await pool.query("INSERT INTO audit_log(action,user_id,ip_address,details) VALUES($1,$2,$3,$4)", [action, uid||null, ip, JSON.stringify(data||{})]); } catch(e) {}
 }
 
 async function initDB() {
@@ -139,7 +133,63 @@ app.get("/api/health", (req, res) => {
   res.status(200).json({ status: "ok", time: new Date().toISOString(), version: "5.0.0" });
 });
 
-// Static files - no cache
+// Crypto fix script - patches the key export bug in app.html
+const CRYPTO_FIX = `
+<script>
+(function(){
+  function waitForCE(cb, tries) {
+    tries = tries || 0;
+    if (typeof CE !== 'undefined') { cb(); }
+    else if (tries < 50) { setTimeout(function(){ waitForCE(cb, tries+1); }, 100); }
+  }
+  waitForCE(function(){
+    // Fix ePriv to handle non-extractable keys using JWK fallback
+    CE.ePriv = async function(kp) {
+      try {
+        var r = await crypto.subtle.exportKey('pkcs8', kp.privateKey);
+        var bytes = new Uint8Array(r);
+        return Array.from(bytes).map(function(x){ return x.toString(16).padStart(2,'0'); }).join('');
+      } catch(e1) {
+        try {
+          var jwk = await crypto.subtle.exportKey('jwk', kp.privateKey);
+          return 'jwk:' + JSON.stringify(jwk);
+        } catch(e2) {
+          console.warn('Key not exportable - session only');
+          return null;
+        }
+      }
+    };
+    // Fix importPriv to handle JWK format
+    CE.importPriv = async function(hex) {
+      if (!hex) return null;
+      if (hex.startsWith('jwk:')) {
+        var jwk = JSON.parse(hex.slice(4));
+        return crypto.subtle.importKey('jwk', jwk, {name:'ECDH',namedCurve:'P-256'}, true, ['deriveKey']);
+      }
+      var bytes = new Uint8Array(hex.match(/.{2}/g).map(function(b){ return parseInt(b,16); }));
+      return crypto.subtle.importKey('pkcs8', bytes.buffer, {name:'ECDH',namedCurve:'P-256'}, true, ['deriveKey']);
+    };
+    console.log('SecureChat crypto fix v2 applied');
+  });
+})();
+</script>
+`;
+
+// Serve app.html with crypto fix injected
+app.get("/app.html", (req, res) => {
+  const filePath = path.join(__dirname, "app.html");
+  if (!fs.existsSync(filePath)) {
+    return res.status(404).send("app.html not found");
+  }
+  let html = fs.readFileSync(filePath, "utf8");
+  // Inject fix before </body>
+  html = html.replace("</body>", CRYPTO_FIX + "</body>");
+  res.setHeader("Content-Type", "text/html");
+  res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+  res.send(html);
+});
+
+// Static files
 app.use(express.static(path.join(__dirname, "."), { maxAge: "0", etag: false }));
 
 // Register
@@ -213,7 +263,6 @@ app.get("/api/users", auth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: "Could not load contacts." }); }
 });
 
-// Update profile
 app.patch("/api/me", auth, async (req, res) => {
   const b = req.body.bio ? san(req.body.bio).slice(0,160) : undefined;
   const c = (req.body.avatarColor && /^#[0-9a-fA-F]{6}$/.test(req.body.avatarColor)) ? req.body.avatarColor : undefined;
@@ -223,48 +272,20 @@ app.patch("/api/me", auth, async (req, res) => {
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: "Update failed." }); }
 });
-// Get all users except the logged-in user
-app.get("/api/users", auth, async (req, res) => {
-  try {
-    const result = await pool.query(
-      `SELECT
-          id,
-          username,
-          phone,
-          public_key AS "publicKey"
-       FROM users
-       WHERE id <> $1
-       ORDER BY username ASC`,
-      [req.user.id]
-    );
 
-    res.json(result.rows);
-  } catch (err) {
-    console.error("Users API error:", err);
-    res.status(500).json({ error: "Failed to load users" });
-  }
-});
-
-// Get messages
 app.get("/api/messages/:cid", auth, async (req, res) => {
   const cid = req.params.cid;
-  if (!V.convId(cid)) return res.status(400).json({ error: "Invalid conversation ID." });
+  if (!V.convId(cid)) return res.status(400).json({ error: "Invalid." });
   if (!cid.includes(req.user.id)) return res.status(403).json({ error: "Access denied." });
   try {
-    const r = await pool.query(
-      "SELECT m.*,u.username AS sender_name FROM messages m JOIN users u ON m.sender_id=u.id WHERE m.conversation_id=$1 AND m.deleted_at IS NULL ORDER BY m.created_at ASC LIMIT 200",
-      [cid]
-    );
+    const r = await pool.query("SELECT m.*,u.username AS sender_name FROM messages m JOIN users u ON m.sender_id=u.id WHERE m.conversation_id=$1 AND m.deleted_at IS NULL ORDER BY m.created_at ASC LIMIT 200", [cid]);
     res.json(r.rows.map(m => ({ id: m.id, conversationId: m.conversation_id, senderId: m.sender_id, recipientId: m.recipient_id, senderName: m.sender_name, iv: m.iv, ciphertext: m.ciphertext, messageType: m.message_type, metadata: m.metadata, delivered: m.delivered, read: !!m.read_at, timestamp: m.created_at })));
   } catch(e) { res.status(500).json({ error: "Could not load messages." }); }
 });
 
-// Send message
 app.post("/api/messages", auth, msgLimit, async (req, res) => {
   const { conversationId: cid, recipientId, iv, ciphertext, messageType, metadata } = req.body;
-  if (!V.convId(cid))   return res.status(400).json({ error: "Invalid conversation ID." });
-  if (!V.iv(iv))        return res.status(400).json({ error: "Invalid IV." });
-  if (!V.cipher(ciphertext)) return res.status(400).json({ error: "Invalid ciphertext." });
+  if (!V.convId(cid) || !V.iv(iv) || !V.cipher(ciphertext)) return res.status(400).json({ error: "Invalid message data." });
   if (!cid.includes(req.user.id)) return res.status(403).json({ error: "Access denied." });
   const safe = {};
   if (metadata && typeof metadata === "object") {
@@ -273,34 +294,24 @@ app.post("/api/messages", auth, msgLimit, async (req, res) => {
   try {
     await pool.query("INSERT INTO conversations(id) VALUES($1) ON CONFLICT DO NOTHING", [cid]);
     const online = userSockets.has(recipientId);
-    const r = await pool.query(
-      "INSERT INTO messages(conversation_id,sender_id,recipient_id,iv,ciphertext,message_type,metadata,delivered) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *",
-      [cid, req.user.id, recipientId||null, iv, ciphertext, messageType||"text", JSON.stringify(safe), online]
-    );
+    const r = await pool.query("INSERT INTO messages(conversation_id,sender_id,recipient_id,iv,ciphertext,message_type,metadata,delivered) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *", [cid, req.user.id, recipientId||null, iv, ciphertext, messageType||"text", JSON.stringify(safe), online]);
     const msg = r.rows[0];
     const out = { id: msg.id, conversationId: msg.conversation_id, senderId: msg.sender_id, recipientId: msg.recipient_id, iv: msg.iv, ciphertext: msg.ciphertext, messageType: msg.message_type, metadata: msg.metadata, delivered: msg.delivered, read: false, timestamp: msg.created_at };
     const s = userSockets.get(recipientId);
     if (s) io.to(s).emit("message:new", out);
     res.status(201).json(out);
-  } catch(e) {
-    console.error("Send:", e.message);
-    res.status(500).json({ error: "Failed to send." });
-  }
+  } catch(e) { console.error("Send:", e.message); res.status(500).json({ error: "Failed to send." }); }
 });
 
-// Mark read
 app.post("/api/messages/:cid/read", auth, async (req, res) => {
   const cid = req.params.cid;
   if (!V.convId(cid) || !cid.includes(req.user.id)) return res.status(400).json({ error: "Invalid." });
-  try {
-    await pool.query("UPDATE messages SET read_at=NOW() WHERE conversation_id=$1 AND recipient_id=$2 AND read_at IS NULL", [cid, req.user.id]);
-    res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: "Failed." }); }
+  try { await pool.query("UPDATE messages SET read_at=NOW() WHERE conversation_id=$1 AND recipient_id=$2 AND read_at IS NULL", [cid, req.user.id]); res.json({ ok: true }); }
+  catch(e) { res.status(500).json({ error: "Failed." }); }
 });
 
-// Delete message
 app.delete("/api/messages/:id", auth, async (req, res) => {
-  if (!V.uuid(req.params.id)) return res.status(400).json({ error: "Invalid ID." });
+  if (!V.uuid(req.params.id)) return res.status(400).json({ error: "Invalid." });
   try {
     const r = await pool.query("UPDATE messages SET deleted_at=NOW() WHERE id=$1 AND sender_id=$2 RETURNING id", [req.params.id, req.user.id]);
     if (!r.rows.length) return res.status(404).json({ error: "Not found." });
@@ -308,27 +319,19 @@ app.delete("/api/messages/:id", auth, async (req, res) => {
   } catch(e) { res.status(500).json({ error: "Failed." }); }
 });
 
-// Block user
 app.post("/api/block/:uid", auth, async (req, res) => {
-  if (!V.uuid(req.params.uid)) return res.status(400).json({ error: "Invalid ID." });
-  if (req.params.uid === req.user.id) return res.status(400).json({ error: "Cannot block yourself." });
-  try {
-    await pool.query("INSERT INTO blocked_users(blocker_id,blocked_id) VALUES($1,$2) ON CONFLICT DO NOTHING", [req.user.id, req.params.uid]);
-    res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: "Failed." }); }
+  if (!V.uuid(req.params.uid) || req.params.uid === req.user.id) return res.status(400).json({ error: "Invalid." });
+  try { await pool.query("INSERT INTO blocked_users(blocker_id,blocked_id) VALUES($1,$2) ON CONFLICT DO NOTHING", [req.user.id, req.params.uid]); res.json({ ok: true }); }
+  catch(e) { res.status(500).json({ error: "Failed." }); }
 });
 
-// Log call
 app.post("/api/calls", auth, async (req, res) => {
   const { recipientId, callType, durationSeconds, status } = req.body;
   if (!V.uuid(recipientId) || !["audio","video"].includes(callType)) return res.status(400).json({ error: "Invalid." });
-  try {
-    await pool.query("INSERT INTO call_logs(caller_id,recipient_id,call_type,duration_seconds,status) VALUES($1,$2,$3,$4,$5)", [req.user.id, recipientId, callType, Math.min(Number(durationSeconds)||0,86400), status||"completed"]);
-    res.json({ ok: true });
-  } catch(e) { res.status(500).json({ error: "Failed." }); }
+  try { await pool.query("INSERT INTO call_logs(caller_id,recipient_id,call_type,duration_seconds,status) VALUES($1,$2,$3,$4,$5)", [req.user.id, recipientId, callType, Math.min(Number(durationSeconds)||0,86400), status||"completed"]); res.json({ ok: true }); }
+  catch(e) { res.status(500).json({ error: "Failed." }); }
 });
 
-// Serve frontend
 app.get("*", (req, res) => {
   res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
   res.sendFile(path.join(__dirname, "index.html"));
@@ -336,7 +339,6 @@ app.get("*", (req, res) => {
 
 app.use((err, req, res, next) => { console.error(err.message); res.status(500).json({ error: "Server error." }); });
 
-// WebSocket
 const io = new Server(server, { cors: { origin: ORIGIN }, pingTimeout: 60000, pingInterval: 25000, maxHttpBufferSize: 1e6 });
 
 io.use((socket, next) => {
