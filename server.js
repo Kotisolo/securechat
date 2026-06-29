@@ -313,7 +313,7 @@ app.get("/api/users", auth, async (req, res) => {
        LIMIT 20`,
       [req.user.id, `%${q}%`]
     );
-
+console.log("FOUND USERS:", r.rows);
     res.json(
       r.rows.map(u => ({
         id: u.id,
