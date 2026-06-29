@@ -213,7 +213,7 @@ app.post("/api/register", authLimit, async (req, res) => {
 
     const r = await pool.query(
       "INSERT INTO users(username, phone, password_hash, public_key, bio, avatar_color) VALUES($1,$2,$3,$4,$5,$6) RETURNING id, username, phone, public_key, bio, avatar_color",
-      [name, ph, hash, null, b, color]
+      [name, ph, hash, "TEMP_PUBLIC_KEY", b, color]
     );
 
     const u = r.rows[0];
