@@ -279,7 +279,7 @@ app.post("/api/login", authLimit, async (req, res) => {
 
 app.get("/api/users", auth, async (req, res) => {
   const q = san(req.query.q || "").trim();
-
+ console.log("SEARCH QUERY:", q);
   if (!q || q.length < 2) {
     return res.json([]);
   }
