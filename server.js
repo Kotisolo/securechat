@@ -223,6 +223,27 @@ app.patch("/api/me", auth, async (req, res) => {
     res.json(r.rows[0]);
   } catch(e) { res.status(500).json({ error: "Update failed." }); }
 });
+// Get all users except the logged-in user
+app.get("/api/users", auth, async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT
+          id,
+          username,
+          phone,
+          public_key AS "publicKey"
+       FROM users
+       WHERE id <> $1
+       ORDER BY username ASC`,
+      [req.user.id]
+    );
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Users API error:", err);
+    res.status(500).json({ error: "Failed to load users" });
+  }
+});
 
 // Get messages
 app.get("/api/messages/:cid", auth, async (req, res) => {
