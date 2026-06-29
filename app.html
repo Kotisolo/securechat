@@ -149,7 +149,80 @@ async function startCall(video){if(!S.active)return toast('Select a contact firs
 function toggleMic(){S.mic=!S.mic;if(S.stream)S.stream.getAudioTracks().forEach(t=>t.enabled=S.mic)}
 function toggleCam(){S.cam=!S.cam;if(S.stream)S.stream.getVideoTracks().forEach(t=>t.enabled=S.cam)}
 function endCall(){if(S.stream){S.stream.getTracks().forEach(t=>t.stop());S.stream=null}g('call-screen').classList.remove('on');g('call-video').classList.remove('on')}
-function connectSocket(){if(typeof io==='undefined'){g('conn-badge').className='pill off';g('conn-badge').textContent='● Offline';return}try{S.socket=io({auth:{token:S.token},transports:['websocket','polling']});S.socket.on('connect',()=>{g('conn-badge').className='pill live';g('conn-badge').textContent='● Live'});S.socket.on('disconnect',()=>{g('conn-badge').className='pill off';g('conn-badge').textContent='● Offline'});S.socket.on('message:new',m=>{const other=String(m.senderId)===String(S.me.id)?m.recipientId:m.senderId;const id=convId(S.me.id,other);S.messages[id]=S.messages[id]||[];S.messages[id].push({id:m.id||Date.now(),senderId:m.senderId,recipientId:m.recipientId,text:m.text||m.ciphertext||'',timestamp:m.timestamp||new Date().toISOString(),type:'text'});if(S.active&&String(S.active.id)===String(other))renderMessages();renderContacts()})}catch(e){}}
+function connectSocket(){
+  if(typeof io === 'undefined'){
+    g('conn-badge').className = 'pill off';
+    g('conn-badge').textContent = '● Offline';
+    return;
+  }
+
+  try{
+    S.socket = io({
+      auth:{ token:S.token },
+      transports:['websocket','polling']
+    });
+
+    S.socket.on('connect', () => {
+      g('conn-badge').className = 'pill live';
+      g('conn-badge').textContent = '● Live';
+    });
+
+    S.socket.on('disconnect', () => {
+      g('conn-badge').className = 'pill off';
+      g('conn-badge').textContent = '● Offline';
+    });
+
+    S.socket.on('message:new', m => {
+      const other = String(m.senderId) === String(S.me.id)
+        ? m.recipientId
+        : m.senderId;
+
+      const id = convId(S.me.id, other);
+
+      S.messages[id] = S.messages[id] || [];
+      S.messages[id].push({
+        id: m.id || Date.now(),
+        senderId: m.senderId,
+        recipientId: m.recipientId,
+        text: m.text || m.ciphertext || '',
+        timestamp: m.timestamp || new Date().toISOString(),
+        type: 'text'
+      });
+
+      if(S.active && String(S.active.id) === String(other)){
+        renderMessages();
+      }
+
+      renderContacts();
+    });
+
+    // Real WebRTC call listeners
+    S.socket.on('call:incoming', data => {
+      showIncomingCall(data);
+    });
+
+    S.socket.on('call:answer', data => {
+      handleCallAnswer(data);
+    });
+
+    S.socket.on('call:ice-candidate', data => {
+      handleIceCandidate(data);
+    });
+
+    S.socket.on('call:ended', () => {
+      toast('Call ended');
+      endCall();
+    });
+
+    S.socket.on('call:unavailable', () => {
+      toast('User is not online');
+      endCall();
+    });
+
+  }catch(e){
+    console.error('Socket error:', e);
+  }
+}
 function openMyProfile(){if(!S.me)return;g('p-name').textContent=S.me.username||'N/A';g('p-phone').textContent=S.me.phone||'N/A';g('p-id').textContent=S.me.id||'N/A';g('profile-modal').classList.add('on')}
 function closeModal(){g('profile-modal').classList.remove('on')}
 function doLogout(){localStorage.removeItem('sc_token');localStorage.removeItem('sc_user');location.reload()}
