@@ -866,7 +866,7 @@ function connectSocket(){
 // ═══════════════════════════════════════════════
 async function loadContacts(){
   try{
-    S.contacts=await api('/api/users');
+    S.contacts=(await api('/api/users')).filter(u => u.id !== S.me.id);
     const known=JSON.parse(localStorage.getItem('sc_knownKeys')||'{}');
     S.contacts.forEach((c,i)=>{
       c.online=false;if(!c.avatarColor)c.avatarColor=COLORS[i%COLORS.length];
