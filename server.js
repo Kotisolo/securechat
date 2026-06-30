@@ -149,6 +149,36 @@ app.post("/api/register", async (req, res) => {
     res.status(500).json({ error: "Registration failed." });
   }
 });
+app.post("/api/reset-password", async (req, res) => {
+  const phone = clean(req.body.phone);
+  const password = req.body.password || "";
+
+  if (phone.length < 6) {
+    return res.status(400).json({ error: "Enter registered phone number." });
+  }
+
+  if (password.length < 6) {
+    return res.status(400).json({ error: "Password must be at least 6 characters." });
+  }
+
+  try {
+    const hash = await bcrypt.hash(password, 12);
+
+    const r = await pool.query(
+      "UPDATE users SET password_hash=$1 WHERE phone=$2 RETURNING id",
+      [hash, phone]
+    );
+
+    if (!r.rows.length) {
+      return res.status(404).json({ error: "Phone number not registered." });
+    }
+
+    res.json({ ok: true, message: "Password reset successful." });
+  } catch (e) {
+    console.error("reset-password", e.message);
+    res.status(500).json({ error: "Could not reset password." });
+  }
+});
 
 app.post("/api/login", async (req, res) => {
 
