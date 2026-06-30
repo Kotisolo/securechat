@@ -41,6 +41,17 @@ function init() {
   $("registerTab").onclick = () => setAuthTab("register");
   $("loginBtn").onclick = login;
   $("registerBtn").onclick = register;
+  $("forgotBtn").onclick = () => {
+    $("loginBox").classList.add("hidden");
+    $("resetBox").classList.remove("hidden");
+};
+
+$("backLoginBtn").onclick = () => {
+    $("resetBox").classList.add("hidden");
+    $("loginBox").classList.remove("hidden");
+};
+
+$("resetBtn").onclick = resetPassword;
   $("logoutBtn").onclick = logout;
   $("switchBtn").onclick = logout;
 
