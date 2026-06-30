@@ -182,6 +182,23 @@
     <button id="endCallBtn" class="danger"><span class="material-symbols-rounded">call_end</span></button>
   </div>
 </div>
+  <div id="miniCallBar" class="mini-call hidden">
+  <div class="mini-info" onclick="restoreCall()">
+    <span id="miniCallIcon" class="material-symbols-rounded">call</span>
+    <div>
+      <strong id="miniCallName">Call</strong>
+      <small id="miniCallTime">00:00</small>
+    </div>
+  </div>
+
+  <button id="miniMuteBtn" onclick="toggleMute()">
+    <span class="material-symbols-rounded">mic</span>
+  </button>
+
+  <button class="danger" onclick="endCall()">
+    <span class="material-symbols-rounded">call_end</span>
+  </button>
+</div>
 
 <div id="profileModal" class="modal hidden">
   <div class="modal-card">
