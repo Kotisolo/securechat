@@ -978,6 +978,8 @@ function endCall(skipEmit = false) {
   APP.callUser = null;
   APP.callType = "audio";
   pendingIceCandidates = [];
+  // Hide the mini floating call bar too
+$("miniCallBar").classList.add("hidden");
 
   $("callOverlay").classList.add("hidden");
 
