@@ -91,3 +91,19 @@ main{height:calc(100dvh - 74px);display:flex;min-height:0}
   .composer{position:fixed;left:0;right:0;bottom:0;z-index:15;padding-bottom:calc(10px + env(safe-area-inset-bottom))}
   .messages{padding-bottom:92px}
 }
+/* Forgot Password button */
+.link-btn{
+    width:100%;
+    margin-top:12px;
+    background:none;
+    border:none;
+    color:#5B5FEF;
+    cursor:pointer;
+    font-weight:600;
+    font-size:15px;
+    text-align:center;
+}
+
+.link-btn:hover{
+    text-decoration:underline;
+}
