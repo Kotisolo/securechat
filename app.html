@@ -1429,6 +1429,210 @@ location.reload();
 </script>
 
 <script src="app.js"></script>
+  <script>
+
+// ===============================
+// SecureChat v6 - RESPONSE 3
+// Paste this before </body>
+// ===============================
+
+const $ = (id)=>document.getElementById(id);
+
+const APP={
+token:null,
+user:null,
+socket:null,
+contacts:[],
+active:null,
+messages:{},
+};
+
+function show(id){
+document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+$(id).classList.add("active");
+}
+
+setTimeout(()=>{
+show("welcome");
+},1800);
+
+$("btnStart").onclick=()=>{
+show("auth");
+};
+
+// ---------------- LOGIN TAB ----------------
+
+$("loginTab").onclick=()=>{
+$("loginTab").classList.add("active");
+$("registerTab").classList.remove("active");
+
+$("loginBox").style.display="block";
+$("registerBox").style.display="none";
+};
+
+// ---------------- REGISTER TAB ----------------
+
+$("registerTab").onclick=()=>{
+$("registerTab").classList.add("active");
+$("loginTab").classList.remove("active");
+
+$("registerBox").style.display="block";
+$("loginBox").style.display="none";
+};
+
+// ---------------- API ----------------
+
+async function api(url,method="GET",body=null){
+
+const headers={
+"Content-Type":"application/json"
+};
+
+if(APP.token){
+headers.Authorization="Bearer "+APP.token;
+}
+
+const res=await fetch(url,{
+method,
+headers,
+body:body?JSON.stringify(body):null
+});
+
+const data=await res.json();
+
+if(!res.ok){
+throw new Error(data.error||"Server Error");
+}
+
+return data;
+
+}
+
+// ---------------- REGISTER ----------------
+
+$("btnRegister").onclick=async()=>{
+
+try{
+
+const r=await api("/api/register","POST",{
+
+username:$("regName").value.trim(),
+
+phone:$("regPhone").value.trim(),
+
+password:$("regPassword").value
+
+});
+
+loginSuccess(r);
+
+}catch(e){
+
+alert(e.message);
+
+}
+
+};
+
+// ---------------- LOGIN ----------------
+
+$("btnLogin").onclick=async()=>{
+
+try{
+
+const r=await api("/api/login","POST",{
+
+phone:$("loginPhone").value.trim(),
+
+password:$("loginPassword").value
+
+});
+
+loginSuccess(r);
+
+}catch(e){
+
+alert(e.message);
+
+}
+
+};
+
+// ---------------- LOGIN SUCCESS ----------------
+
+function loginSuccess(r){
+
+APP.token=r.token;
+
+APP.user=r.user;
+
+localStorage.setItem("sc_token",APP.token);
+
+localStorage.setItem("sc_user",JSON.stringify(APP.user));
+
+$("myName").textContent=APP.user.username;
+
+$("myStatus").textContent="Online";
+
+$("meAvatar").textContent=
+APP.user.username.substring(0,2).toUpperCase();
+
+document.getElementById("auth").style.display="none";
+document.getElementById("welcome").style.display="none";
+document.getElementById("splash").style.display="none";
+
+document.getElementById("app").style.display="block";
+
+connectSocket();
+
+loadContacts();
+
+}
+
+// ---------------- AUTO LOGIN ----------------
+
+window.onload=()=>{
+
+const t=localStorage.getItem("sc_token");
+
+const u=localStorage.getItem("sc_user");
+
+if(t&&u){
+
+APP.token=t;
+
+APP.user=JSON.parse(u);
+
+$("myName").textContent=APP.user.username;
+
+$("meAvatar").textContent=
+APP.user.username.substring(0,2).toUpperCase();
+
+document.getElementById("auth").style.display="none";
+document.getElementById("welcome").style.display="none";
+document.getElementById("splash").style.display="none";
+
+document.getElementById("app").style.display="block";
+
+connectSocket();
+
+loadContacts();
+
+}
+
+};
+
+// ---------------- LOGOUT ----------------
+
+function logout(){
+
+localStorage.clear();
+
+location.reload();
+
+}
+
+</script>
 
 </body>
 </html>
