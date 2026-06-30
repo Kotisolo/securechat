@@ -13,17 +13,23 @@ const APP = {
   callType: "audio",
   cameraStream: null,
   cameraFacing: "environment",
-  capturedImage: null
+  capturedImage: null,
+  typingTimer: null
 };
 
 const rtcConfig = {
   iceServers: [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" }
-  ]
+  ],
+  iceCandidatePoolSize: 10
 };
 
 const EMOJIS = "😀 😃 😄 😁 😆 😅 😂 🙂 😊 😍 😘 😎 😢 😭 😡 👍 👎 🙏 🔥 ❤️ 🎉 ✅ 💯".split(" ");
+
+let callTimer = null;
+let callStartedAt = null;
+let pendingIceCandidates = [];
 
 document.addEventListener("DOMContentLoaded", init);
 
@@ -40,12 +46,14 @@ function init() {
 
   $("searchInput").addEventListener("input", searchUsers);
   $("sendBtn").onclick = sendText;
+
   $("messageInput").addEventListener("keydown", e => {
     if (e.key === "Enter") {
       e.preventDefault();
       sendText();
     }
   });
+
   $("messageInput").addEventListener("input", sendTyping);
 
   $("backBtn").onclick = () => $("chatPanel").classList.remove("mobile-open");
@@ -53,6 +61,7 @@ function init() {
   $("galleryBtn").onclick = () => $("galleryInput").click();
   $("fileBtn").onclick = () => $("fileInput").click();
   $("cameraBtn").onclick = openCamera;
+
   $("galleryInput").onchange = sendImageFile;
   $("fileInput").onchange = sendRegularFile;
 
@@ -73,16 +82,16 @@ function init() {
 
   setupEmoji();
 
- const token = localStorage.getItem("sc_token");
-const user = localStorage.getItem("sc_user");
+  const token = localStorage.getItem("sc_token");
+  const user = localStorage.getItem("sc_user");
 
-if (token && user) {
+  if (token && user) {
     APP.token = token;
     APP.user = JSON.parse(user);
     enterApp();
-} else {
+  } else {
     showScreen("welcome");
-}
+  }
 }
 
 function showScreen(id) {
@@ -100,7 +109,10 @@ function setAuthTab(tab) {
 
 async function api(path, method = "GET", body = null) {
   const headers = { "Content-Type": "application/json" };
-  if (APP.token) headers.Authorization = "Bearer " + APP.token;
+
+  if (APP.token) {
+    headers.Authorization = "Bearer " + APP.token;
+  }
 
   const res = await fetch(path, {
     method,
@@ -109,9 +121,14 @@ async function api(path, method = "GET", body = null) {
   });
 
   let data = {};
-  try { data = await res.json(); } catch {}
+  try {
+    data = await res.json();
+  } catch {}
 
-  if (!res.ok) throw new Error(data.error || "Request failed");
+  if (!res.ok) {
+    throw new Error(data.error || "Request failed");
+  }
+
   return data;
 }
 
@@ -122,6 +139,7 @@ async function register() {
       phone: $("regPhone").value.trim(),
       password: $("regPassword").value
     });
+
     loginSuccess(r);
   } catch (e) {
     $("authError").textContent = e.message;
@@ -134,6 +152,7 @@ async function login() {
       phone: $("loginPhone").value.trim(),
       password: $("loginPassword").value
     });
+
     loginSuccess(r);
   } catch (e) {
     $("authError").textContent = e.message;
@@ -143,8 +162,10 @@ async function login() {
 function loginSuccess(r) {
   APP.token = r.token;
   APP.user = r.user;
+
   localStorage.setItem("sc_token", APP.token);
   localStorage.setItem("sc_user", JSON.stringify(APP.user));
+
   enterApp();
 }
 
@@ -153,8 +174,10 @@ function enterApp() {
   $("welcome").style.display = "none";
   $("auth").style.display = "none";
   $("app").style.display = "block";
+
   $("myName").textContent = APP.user.username;
   $("myAvatar").textContent = initials(APP.user.username);
+
   connectSocket();
   loadChats();
 }
@@ -184,60 +207,96 @@ function escapeHtml(s) {
 
 function timeStr(v) {
   try {
-    return new Date(v || Date.now()).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  } catch { return ""; }
+    return new Date(v || Date.now()).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  } catch {
+    return "";
+  }
 }
 
 function toast(msg) {
   $("toast").textContent = msg;
   $("toast").classList.add("on");
-  setTimeout(() => $("toast").classList.remove("on"), 2500);
+
+  setTimeout(() => {
+    $("toast").classList.remove("on");
+  }, 2500);
 }
 
 async function loadChats() {
   $("chatList").innerHTML = `<div class="empty-chat"><p class="muted">Loading chats...</p></div>`;
+
   try {
     const chats = await api("/api/chats");
+
     APP.contacts = chats.map(c => c.contact).filter(Boolean);
+
     chats.forEach(c => {
       const id = c.conversationId;
       APP.messages[id] = APP.messages[id] || [];
       APP.messages[id].preview = c.lastMessage;
     });
-    if (!APP.contacts.length) showChatHint();
-    else renderContacts();
+
+    if (!APP.contacts.length) {
+      showChatHint();
+    } else {
+      renderContacts();
+    }
   } catch {
     showChatHint();
   }
 }
 
 function showChatHint() {
-  $("chatList").innerHTML = `<div style="padding:25px;text-align:center;color:var(--muted)">Search a name or phone number to start chatting.</div>`;
+  $("chatList").innerHTML = `
+    <div style="padding:25px;text-align:center;color:var(--muted)">
+      Search a name or phone number to start chatting.
+    </div>
+  `;
 }
 
 async function searchUsers() {
   const q = $("searchInput").value.trim();
-  if (q.length < 2) return loadChats();
 
-  $("chatList").innerHTML = `<div style="padding:25px;text-align:center;color:var(--muted)">Searching...</div>`;
+  if (q.length < 2) {
+    return loadChats();
+  }
+
+  $("chatList").innerHTML = `
+    <div style="padding:25px;text-align:center;color:var(--muted)">
+      Searching...
+    </div>
+  `;
 
   try {
     APP.contacts = await api("/api/users?q=" + encodeURIComponent(q));
     renderContacts();
   } catch (e) {
-    $("chatList").innerHTML = `<div style="padding:25px;text-align:center;color:var(--red)">${escapeHtml(e.message)}</div>`;
+    $("chatList").innerHTML = `
+      <div style="padding:25px;text-align:center;color:var(--red)">
+        ${escapeHtml(e.message)}
+      </div>
+    `;
   }
 }
 
 function renderContacts() {
-  if (!APP.contacts.length) return showChatHint();
+  if (!APP.contacts.length) {
+    return showChatHint();
+  }
 
   $("chatList").innerHTML = "";
 
   APP.contacts.forEach(c => {
     const id = convId(APP.user.id, c.id);
     const msgs = APP.messages[id] || [];
-    const last = msgs.length ? preview(msgs[msgs.length - 1]) : (msgs.preview ? preview(msgs.preview) : c.phone);
+    const last = msgs.length
+      ? preview(msgs[msgs.length - 1])
+      : msgs.preview
+        ? preview(msgs.preview)
+        : c.phone;
 
     const row = document.createElement("div");
     row.className = "chat-item" + (APP.active && APP.active.id === c.id ? " active" : "");
@@ -250,39 +309,51 @@ function renderContacts() {
         <div class="chat-last">${escapeHtml(last || "Tap to chat")}</div>
       </div>
     `;
+
     $("chatList").appendChild(row);
   });
 }
 
 function preview(m) {
   const meta = m.metadata || m;
+
   if (meta.kind === "image") return "Photo";
   if (meta.kind === "file") return "File: " + (meta.name || "Attachment");
+
   return (m.fromMe ? "You: " : "") + (m.text || m.ciphertext || "Message");
 }
 
 async function openChat(c) {
   APP.active = c;
+
   $("emptyChat").classList.add("hidden");
   $("chatHeader").classList.remove("hidden");
   $("messages").classList.remove("hidden");
   $("composer").classList.remove("hidden");
+
   $("contactName").textContent = c.username;
   $("contactAvatar").textContent = initials(c.username);
   $("contactStatus").textContent = c.online ? "Online" : "Private conversation";
-  if (innerWidth <= 760) $("chatPanel").classList.add("mobile-open");
+
+  if (innerWidth <= 760) {
+    $("chatPanel").classList.add("mobile-open");
+  }
+
   await loadMessages();
   renderContacts();
 }
 
 async function loadMessages() {
   const id = convId(APP.user.id, APP.active.id);
+
   try {
     APP.messages[id] = (await api("/api/messages/" + encodeURIComponent(id))).map(normalizeMessage);
+
     await api("/api/messages/" + encodeURIComponent(id) + "/read", "POST", {}).catch(() => {});
   } catch {
     APP.messages[id] = APP.messages[id] || [];
   }
+
   renderMessages();
 }
 
@@ -301,26 +372,37 @@ function normalizeMessage(m) {
 function renderMessages() {
   const id = convId(APP.user.id, APP.active.id);
   const messages = APP.messages[id] || [];
+
   $("messages").innerHTML = "";
 
   if (!messages.length) {
-    $("messages").innerHTML = `<div style="text-align:center;color:var(--muted);margin-top:40px">No messages yet.</div>`;
+    $("messages").innerHTML = `
+      <div style="text-align:center;color:var(--muted);margin-top:40px">
+        No messages yet.
+      </div>
+    `;
     return;
   }
 
   messages.forEach(m => {
     const mine = String(m.senderId) === String(APP.user.id);
     const div = document.createElement("div");
+
     div.className = "message " + (mine ? "me" : "them");
 
     let content = escapeHtml(m.text || "");
+
     if (m.metadata.kind === "image" && m.metadata.data) {
       content = `<img src="${m.metadata.data}">`;
     } else if (m.metadata.kind === "file") {
       content = `Attachment: ${escapeHtml(m.metadata.name || "File")}`;
     }
 
-    div.innerHTML = `${content}<small>${timeStr(m.timestamp)} ${mine ? (m.local ? "sending..." : "✓") : ""}</small>`;
+    div.innerHTML = `
+      ${content}
+      <small>${timeStr(m.timestamp)} ${mine ? (m.local ? "sending..." : "✓") : ""}</small>
+    `;
+
     $("messages").appendChild(div);
   });
 
@@ -329,13 +411,20 @@ function renderMessages() {
 
 async function sendText() {
   const text = $("messageInput").value.trim();
+
   if (!text || !APP.active) return;
+
   $("messageInput").value = "";
-  await sendPayload({ text, metadata: { kind: "text" } });
+
+  await sendPayload({
+    text,
+    metadata: { kind: "text" }
+  });
 }
 
 async function sendPayload({ text, metadata }) {
   const id = convId(APP.user.id, APP.active.id);
+
   const local = {
     id: "local-" + Date.now(),
     senderId: APP.user.id,
@@ -348,6 +437,7 @@ async function sendPayload({ text, metadata }) {
 
   APP.messages[id] = APP.messages[id] || [];
   APP.messages[id].push(local);
+
   renderMessages();
   renderContacts();
 
@@ -359,8 +449,10 @@ async function sendPayload({ text, metadata }) {
       messageType: "text",
       metadata
     });
+
     local.id = saved.id;
     local.local = false;
+
     renderMessages();
   } catch (e) {
     toast("Message failed: " + e.message);
@@ -369,13 +461,16 @@ async function sendPayload({ text, metadata }) {
 
 function setupEmoji() {
   $("emojiPanel").innerHTML = "";
+
   EMOJIS.forEach(e => {
     const b = document.createElement("button");
     b.textContent = e;
+
     b.onclick = () => {
       $("messageInput").value += e;
       $("messageInput").focus();
     };
+
     $("emojiPanel").appendChild(b);
   });
 }
@@ -386,13 +481,19 @@ function toggleEmoji() {
 
 async function openCamera() {
   if (!APP.active) return toast("Select a chat first");
+
   $("cameraOverlay").classList.remove("hidden");
+
   await startCamera();
 }
 
 async function startCamera() {
-  if (APP.cameraStream) APP.cameraStream.getTracks().forEach(t => t.stop());
+  if (APP.cameraStream) {
+    APP.cameraStream.getTracks().forEach(t => t.stop());
+  }
+
   APP.capturedImage = null;
+
   $("cameraCanvas").classList.add("hidden");
   $("cameraVideo").classList.remove("hidden");
 
@@ -401,6 +502,7 @@ async function startCamera() {
       video: { facingMode: APP.cameraFacing },
       audio: false
     });
+
     $("cameraVideo").srcObject = APP.cameraStream;
   } catch {
     toast("Camera permission denied.");
@@ -416,83 +518,155 @@ function switchCamera() {
 function capturePhoto() {
   const v = $("cameraVideo");
   const c = $("cameraCanvas");
+
   c.width = v.videoWidth || 720;
   c.height = v.videoHeight || 1280;
+
   c.getContext("2d").drawImage(v, 0, 0, c.width, c.height);
+
   APP.capturedImage = c.toDataURL("image/jpeg", 0.85);
+
   v.classList.add("hidden");
   c.classList.remove("hidden");
 }
 
 async function sendCapturedPhoto() {
   if (!APP.capturedImage) return capturePhoto();
+
   await sendPayload({
     text: "Photo",
-    metadata: { kind: "image", data: APP.capturedImage, name: "camera.jpg" }
+    metadata: {
+      kind: "image",
+      data: APP.capturedImage,
+      name: "camera.jpg"
+    }
   });
+
   closeCamera();
 }
 
 function closeCamera() {
-  if (APP.cameraStream) APP.cameraStream.getTracks().forEach(t => t.stop());
+  if (APP.cameraStream) {
+    APP.cameraStream.getTracks().forEach(t => t.stop());
+  }
+
   APP.cameraStream = null;
+
   $("cameraOverlay").classList.add("hidden");
 }
 
 function sendImageFile(e) {
   const f = e.target.files[0];
+
   e.target.value = "";
+
   if (!f || !APP.active) return;
+
   const r = new FileReader();
+
   r.onload = () => sendPayload({
     text: "Photo",
-    metadata: { kind: "image", data: r.result, name: f.name }
+    metadata: {
+      kind: "image",
+      data: r.result,
+      name: f.name
+    }
   });
+
   r.readAsDataURL(f);
 }
 
 function sendRegularFile(e) {
   const f = e.target.files[0];
+
   e.target.value = "";
+
   if (!f || !APP.active) return;
+
   sendPayload({
     text: "File: " + f.name,
-    metadata: { kind: "file", name: f.name, size: f.size, mime: f.type }
+    metadata: {
+      kind: "file",
+      name: f.name,
+      size: f.size,
+      mime: f.type
+    }
   });
 }
 
 function connectSocket() {
-  APP.socket = io({ auth: { token: APP.token }, transports: ["websocket", "polling"] });
+  APP.socket = io({
+    auth: { token: APP.token },
+    transports: ["websocket", "polling"]
+  });
 
-  APP.socket.on("connect", () => $("myStatus").textContent = "Online");
-  APP.socket.on("disconnect", () => $("myStatus").textContent = "Offline");
+  APP.socket.on("connect", () => {
+    $("myStatus").textContent = "Online";
+  });
+
+  APP.socket.on("disconnect", () => {
+    $("myStatus").textContent = "Offline";
+  });
 
   APP.socket.on("message:new", m => {
     const other = String(m.senderId) === String(APP.user.id) ? m.recipientId : m.senderId;
     const id = convId(APP.user.id, other);
+
     APP.messages[id] = APP.messages[id] || [];
     APP.messages[id].push(normalizeMessage(m));
-    if (APP.active && String(APP.active.id) === String(other)) renderMessages();
+
+    if (APP.active && String(APP.active.id) === String(other)) {
+      renderMessages();
+    }
+
     renderContacts();
   });
 
   APP.socket.on("typing:start", d => {
-    if (APP.active && String(APP.active.id) === String(d.userId)) $("contactStatus").textContent = "Typing...";
+    if (APP.active && String(APP.active.id) === String(d.userId)) {
+      $("contactStatus").textContent = "Typing...";
+    }
   });
 
   APP.socket.on("typing:stop", d => {
-    if (APP.active && String(APP.active.id) === String(d.userId)) $("contactStatus").textContent = APP.active.online ? "Online" : "Private conversation";
+    if (APP.active && String(APP.active.id) === String(d.userId)) {
+      $("contactStatus").textContent = APP.active.online ? "Online" : "Private conversation";
+    }
   });
 
   APP.socket.on("call:incoming", incomingCall);
+
   APP.socket.on("call:answer", async d => {
-    await APP.pc.setRemoteDescription(new RTCSessionDescription(d.answer));
-    $("callStatus").textContent = "Connected";
+    try {
+      if (!APP.pc) return;
+
+      await APP.pc.setRemoteDescription(new RTCSessionDescription(d.answer));
+      await addPendingIceCandidates();
+
+      setCallStatus("Connecting audio...");
+    } catch (e) {
+      console.error("call:answer error:", e);
+      setCallStatus("Call answer failed.");
+    }
   });
+
   APP.socket.on("call:ice-candidate", async d => {
-    if (APP.pc && d.candidate) await APP.pc.addIceCandidate(new RTCIceCandidate(d.candidate)).catch(() => {});
+    try {
+      if (!APP.pc || !d.candidate) return;
+
+      if (!APP.pc.remoteDescription) {
+        pendingIceCandidates.push(d.candidate);
+        return;
+      }
+
+      await APP.pc.addIceCandidate(new RTCIceCandidate(d.candidate));
+    } catch (e) {
+      console.warn("ICE candidate error:", e.message);
+    }
   });
+
   APP.socket.on("call:ended", () => endCall(true));
+
   APP.socket.on("call:unavailable", () => {
     toast("User is not online");
     endCall(true);
@@ -501,46 +675,177 @@ function connectSocket() {
 
 function sendTyping() {
   if (!APP.active || !APP.socket) return;
-  APP.socket.emit("typing:start", { recipientId: APP.active.id, conversationId: convId(APP.user.id, APP.active.id) });
+
+  APP.socket.emit("typing:start", {
+    recipientId: APP.active.id,
+    conversationId: convId(APP.user.id, APP.active.id)
+  });
+
   clearTimeout(APP.typingTimer);
-  APP.typingTimer = setTimeout(() => APP.socket.emit("typing:stop", { recipientId: APP.active.id }), 900);
+
+  APP.typingTimer = setTimeout(() => {
+    APP.socket.emit("typing:stop", {
+      recipientId: APP.active.id
+    });
+  }, 900);
+}
+
+function setCallStatus(text) {
+  $("callStatus").textContent = text;
+}
+
+function startCallTimer() {
+  stopCallTimer();
+
+  callStartedAt = Date.now();
+
+  callTimer = setInterval(() => {
+    const total = Math.floor((Date.now() - callStartedAt) / 1000);
+    const min = String(Math.floor(total / 60)).padStart(2, "0");
+    const sec = String(total % 60).padStart(2, "0");
+
+    setCallStatus("Connected • " + min + ":" + sec);
+  }, 1000);
+}
+
+function stopCallTimer() {
+  if (callTimer) {
+    clearInterval(callTimer);
+  }
+
+  callTimer = null;
+  callStartedAt = null;
 }
 
 async function createPeer(type) {
+  cleanupPeerOnly();
+
   APP.pc = new RTCPeerConnection(rtcConfig);
-  APP.stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: type === "video" });
-  APP.stream.getTracks().forEach(t => APP.pc.addTrack(t, APP.stream));
+  pendingIceCandidates = [];
+
+  APP.pc.ontrack = event => {
+    const stream = event.streams && event.streams[0];
+
+    if (!stream) return;
+
+    $("remoteAudio").srcObject = stream;
+    $("remoteAudio").muted = false;
+    $("remoteAudio").volume = 1;
+
+    $("remoteAudio").play().catch(() => {
+      console.warn("Remote audio autoplay blocked until user taps screen.");
+    });
+
+    if (type === "video") {
+      $("videoBox").classList.remove("hidden");
+      $("remoteVideo").srcObject = stream;
+      $("remoteVideo").play().catch(() => {});
+    }
+  };
+
+  APP.pc.onicecandidate = event => {
+    if (event.candidate && APP.callUser) {
+      APP.socket.emit("call:ice-candidate", {
+        recipientId: APP.callUser,
+        candidate: event.candidate
+      });
+    }
+  };
+
+  APP.pc.oniceconnectionstatechange = () => {
+    const state = APP.pc?.iceConnectionState;
+
+    console.log("ICE state:", state);
+
+    if (state === "checking") setCallStatus("Connecting audio...");
+    if (state === "connected" || state === "completed") startCallTimer();
+    if (state === "failed") setCallStatus("Connection failed. Add TURN server.");
+    if (state === "disconnected") setCallStatus("Connection interrupted...");
+    if (state === "closed") stopCallTimer();
+  };
+
+  APP.pc.onconnectionstatechange = () => {
+    const state = APP.pc?.connectionState;
+
+    console.log("Peer state:", state);
+
+    if (state === "connected") startCallTimer();
+    if (state === "failed") setCallStatus("Call failed. TURN server required.");
+    if (state === "disconnected") setCallStatus("Call disconnected.");
+  };
+
+  APP.stream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true
+    },
+    video: type === "video" ? { facingMode: "user" } : false
+  });
+
+  APP.stream.getTracks().forEach(track => {
+    APP.pc.addTrack(track, APP.stream);
+  });
 
   if (type === "video") {
     $("videoBox").classList.remove("hidden");
     $("localVideo").srcObject = APP.stream;
+    $("localVideo").play().catch(() => {});
+  } else {
+    $("videoBox").classList.add("hidden");
   }
 
-  APP.pc.ontrack = e => {
-    if (type === "video") $("remoteVideo").srcObject = e.streams[0];
-    else $("remoteAudio").srcObject = e.streams[0];
-  };
+  return APP.pc;
+}
 
-  APP.pc.onicecandidate = e => {
-    if (e.candidate && APP.callUser) {
-      APP.socket.emit("call:ice-candidate", { recipientId: APP.callUser, candidate: e.candidate });
+async function addPendingIceCandidates() {
+  if (!APP.pc || !APP.pc.remoteDescription) return;
+
+  while (pendingIceCandidates.length) {
+    const candidate = pendingIceCandidates.shift();
+
+    try {
+      await APP.pc.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (e) {
+      console.warn("Queued ICE candidate failed:", e.message);
     }
-  };
+  }
 }
 
 async function startCall(type) {
   if (!APP.active) return toast("Select a contact first");
+
   APP.callUser = APP.active.id;
   APP.callType = type;
+
   $("callOverlay").classList.remove("hidden");
   $("callTitle").textContent = (type === "video" ? "Video" : "Audio") + " call with " + APP.active.username;
-  $("callStatus").textContent = "Calling...";
+
+  setCallStatus("Calling...");
+
   try {
     await createPeer(type);
-    const offer = await APP.pc.createOffer();
+
+    const offer = await APP.pc.createOffer({
+      offerToReceiveAudio: true,
+      offerToReceiveVideo: type === "video"
+    });
+
     await APP.pc.setLocalDescription(offer);
-    APP.socket.emit("call:offer", { recipientId: APP.callUser, offer, callType: type });
+
+    APP.socket.emit("call:offer", {
+      recipientId: APP.callUser,
+      offer,
+      callType: type
+    });
+
+    setTimeout(() => {
+      if (APP.pc && !["connected", "completed"].includes(APP.pc.iceConnectionState)) {
+        setCallStatus("Still connecting... if no sound, add TURN server.");
+      }
+    }, 10000);
   } catch (e) {
+    console.error("startCall error:", e);
     toast("Call failed: " + e.message);
     endCall(true);
   }
@@ -548,45 +853,106 @@ async function startCall(type) {
 
 async function incomingCall(data) {
   const ok = confirm(`Incoming ${data.callType} call from ${data.callerName}. Accept?`);
+
   if (!ok) {
-    APP.socket.emit("call:end", { recipientId: data.callerId });
+    APP.socket.emit("call:end", {
+      recipientId: data.callerId
+    });
+
     return;
   }
+
   APP.callUser = data.callerId;
   APP.callType = data.callType;
+
   $("callOverlay").classList.remove("hidden");
-  $("callTitle").textContent = "Call with " + data.callerName;
-  $("callStatus").textContent = "Connecting...";
-  await createPeer(data.callType);
-  await APP.pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-  const answer = await APP.pc.createAnswer();
-  await APP.pc.setLocalDescription(answer);
-  APP.socket.emit("call:answer", { callerId: data.callerId, answer });
-  $("callStatus").textContent = "Connected";
+  $("callTitle").textContent = (data.callType === "video" ? "Video" : "Audio") + " call with " + data.callerName;
+
+  setCallStatus("Connecting...");
+
+  try {
+    await createPeer(data.callType);
+
+    await APP.pc.setRemoteDescription(new RTCSessionDescription(data.offer));
+    await addPendingIceCandidates();
+
+    const answer = await APP.pc.createAnswer();
+
+    await APP.pc.setLocalDescription(answer);
+
+    APP.socket.emit("call:answer", {
+      callerId: data.callerId,
+      answer
+    });
+
+    setCallStatus("Connecting audio...");
+  } catch (e) {
+    console.error("incomingCall error:", e);
+    toast("Could not answer call: " + e.message);
+    endCall(true);
+  }
 }
 
 function toggleMute() {
   if (!APP.stream) return;
-  APP.stream.getAudioTracks().forEach(t => t.enabled = !t.enabled);
+
+  APP.stream.getAudioTracks().forEach(track => {
+    track.enabled = !track.enabled;
+    $("muteBtn").classList.toggle("danger", !track.enabled);
+  });
 }
 
 function toggleCamera() {
   if (!APP.stream) return;
-  APP.stream.getVideoTracks().forEach(t => t.enabled = !t.enabled);
+
+  APP.stream.getVideoTracks().forEach(track => {
+    track.enabled = !track.enabled;
+    $("cameraToggleBtn").classList.toggle("danger", !track.enabled);
+  });
 }
 
-function endCall(skipEmit = false) {
-  if (!skipEmit && APP.callUser) APP.socket.emit("call:end", { recipientId: APP.callUser });
-  if (APP.pc) APP.pc.close();
-  if (APP.stream) APP.stream.getTracks().forEach(t => t.stop());
+function cleanupPeerOnly() {
+  if (APP.pc) {
+    try {
+      APP.pc.ontrack = null;
+      APP.pc.onicecandidate = null;
+      APP.pc.oniceconnectionstatechange = null;
+      APP.pc.onconnectionstatechange = null;
+      APP.pc.close();
+    } catch {}
+  }
+
+  if (APP.stream) {
+    APP.stream.getTracks().forEach(track => track.stop());
+  }
+
   APP.pc = null;
   APP.stream = null;
-  APP.callUser = null;
+
   $("remoteVideo").srcObject = null;
   $("localVideo").srcObject = null;
   $("remoteAudio").srcObject = null;
   $("videoBox").classList.add("hidden");
+
+  stopCallTimer();
+}
+
+function endCall(skipEmit = false) {
+  if (!skipEmit && APP.callUser && APP.socket) {
+    APP.socket.emit("call:end", {
+      recipientId: APP.callUser
+    });
+  }
+
+  cleanupPeerOnly();
+
+  APP.callUser = null;
+  APP.callType = "audio";
+  pendingIceCandidates = [];
+
   $("callOverlay").classList.add("hidden");
+
+  setCallStatus("Call ended");
 }
 
 function openProfile(user) {
