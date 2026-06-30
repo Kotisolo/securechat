@@ -147,3 +147,69 @@ main{height:calc(100dvh - 74px);display:flex;min-height:0}
 .link-btn:hover{
     text-decoration:underline;
 }
+
+
+/* PASTE HERE */
+
+.mini-call{
+  position:fixed;
+  left:16px;
+  right:16px;
+  bottom:16px;
+  z-index:9999;
+  background:linear-gradient(135deg,#10182d,#172240);
+  border:1px solid rgba(255,255,255,.12);
+  border-radius:22px;
+  padding:12px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  box-shadow:0 18px 60px rgba(0,0,0,.45);
+}
+
+.mini-info{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  cursor:pointer;
+  flex:1;
+}
+
+.mini-info .material-symbols-rounded{
+  color:#00D4FF;
+  font-size:30px;
+}
+
+.mini-info strong{
+  display:block;
+  font-size:15px;
+}
+
+.mini-info small{
+  display:block;
+  color:#a9b2ce;
+  margin-top:3px;
+}
+
+.mini-call button{
+  width:44px;
+  height:44px;
+  border-radius:14px;
+  border:0;
+  background:#1d2846;
+  color:white;
+  margin-left:8px;
+}
+
+.mini-call .danger{
+  background:#FF4D6D;
+}
+
+@media(min-width:761px){
+  .mini-call{
+    width:330px;
+    right:24px;
+    left:auto;
+    bottom:24px;
+  }
+}
