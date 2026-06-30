@@ -73,14 +73,16 @@ function init() {
 
   setupEmoji();
 
-  const token = localStorage.getItem("sc_token");
-  const user = localStorage.getItem("sc_user");
+ const token = localStorage.getItem("sc_token");
+const user = localStorage.getItem("sc_user");
 
-  if (token && user) {
+if (token && user) {
     APP.token = token;
     APP.user = JSON.parse(user);
     enterApp();
-  }
+} else {
+    showScreen("welcome");
+}
 }
 
 function showScreen(id) {
