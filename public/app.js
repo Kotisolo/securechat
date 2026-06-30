@@ -858,11 +858,7 @@ async function startCall(type) {
       callType: type
     });
 
-    setTimeout(() => {
-      if (APP.pc && !["connected", "completed"].includes(APP.pc.iceConnectionState)) {
-        setCallStatus("Still connecting... if no sound, add TURN server.");
-      }
-    }, 10000);
+   
   } catch (e) {
     console.error("startCall error:", e);
     toast("Call failed: " + e.message);
@@ -887,13 +883,12 @@ async function incomingCall(data) {
   $("callOverlay").classList.remove("hidden");
   $("callTitle").textContent = (data.callType === "video" ? "Video" : "Audio") + " call with " + data.callerName;
 
-  setCallStatus("Connecting...");
+setCallStatus("Connecting...");
 
-  try {
-    await createPeer(data.callType);
+try {
+  await createPeer(data.callType);
 
-    await APP.pc.setRemoteDescription(new RTCSessionDescription(data.offer));
-    await addPendingIceCandidates();
+  await APP.pc.setRemoteDescription(new RTCSessionDescription(data.offer));
 
     const answer = await APP.pc.createAnswer();
 
