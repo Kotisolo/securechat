@@ -709,15 +709,22 @@ function setCallStatus(text) {
 function startCallTimer() {
   stopCallTimer();
 
-  callStartedAt = Date.now();
+callStartedAt = Date.now();
 
-  callTimer = setInterval(() => {
+callTimer = setInterval(() => {
+
     const total = Math.floor((Date.now() - callStartedAt) / 1000);
     const min = String(Math.floor(total / 60)).padStart(2, "0");
     const sec = String(total % 60).padStart(2, "0");
 
     setCallStatus("Connected • " + min + ":" + sec);
-  }, 1000);
+
+    // Update the mini floating call bar timer
+    if ($("miniCallTime")) {
+        $("miniCallTime").textContent = min + ":" + sec;
+    }
+
+}, 1000);
 }
 
 function stopCallTimer() {
