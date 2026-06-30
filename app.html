@@ -1,0 +1,1895 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>SecureChat v6</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:FILL@1" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css">
+  <style>
+
+/* ===========================
+   SECURECHAT V6
+   MIDNIGHT BLUE THEME
+=========================== */
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Inter',sans-serif;
+}
+
+html,body{
+width:100%;
+height:100%;
+overflow:hidden;
+background:#081120;
+color:#fff;
+}
+
+/* Splash */
+
+.screen{
+position:fixed;
+inset:0;
+display:none;
+align-items:center;
+justify-content:center;
+flex-direction:column;
+background:
+linear-gradient(
+135deg,
+#081120,
+#111c36,
+#151d4d);
+}
+
+.screen.active{
+display:flex;
+}
+
+.logo{
+margin-bottom:25px;
+}
+
+.shield{
+
+width:120px;
+height:120px;
+
+border-radius:35px;
+
+background:
+linear-gradient(
+135deg,
+#5B5FEF,
+#8B5CF6);
+
+display:flex;
+align-items:center;
+justify-content:center;
+
+box-shadow:
+0 0 40px rgba(91,95,239,.5);
+
+animation:float 2s infinite ease-in-out;
+
+}
+
+.shield span{
+
+font-size:42px;
+font-weight:800;
+
+}
+
+@keyframes float{
+
+50%{
+
+transform:translateY(-12px);
+
+}
+
+}
+
+#splash h1{
+
+font-size:40px;
+
+margin-top:15px;
+
+}
+
+#splash p{
+
+margin-top:10px;
+
+color:#bfc7e2;
+
+}
+
+/* Welcome */
+
+.card{
+
+width:430px;
+
+max-width:92vw;
+
+padding:40px;
+
+border-radius:28px;
+
+background:rgba(255,255,255,.05);
+
+backdrop-filter:blur(18px);
+
+border:1px solid rgba(255,255,255,.08);
+
+box-shadow:
+
+0 15px 60px rgba(0,0,0,.45);
+
+}
+
+.card h2{
+
+font-size:34px;
+
+margin-bottom:15px;
+
+}
+
+.card p{
+
+color:#b9c0d9;
+
+margin-bottom:30px;
+
+}
+
+.features{
+
+display:flex;
+
+flex-direction:column;
+
+gap:18px;
+
+margin-bottom:30px;
+
+}
+
+.feature{
+
+display:flex;
+
+align-items:center;
+
+gap:15px;
+
+padding:16px;
+
+border-radius:18px;
+
+background:rgba(255,255,255,.05);
+
+transition:.25s;
+
+}
+
+.feature:hover{
+
+background:rgba(91,95,239,.15);
+
+}
+
+.feature span:first-child{
+
+font-size:28px;
+
+color:#00D4FF;
+
+}
+
+.primary{
+
+width:100%;
+
+height:58px;
+
+border:none;
+
+border-radius:18px;
+
+font-size:18px;
+
+font-weight:700;
+
+cursor:pointer;
+
+background:
+
+linear-gradient(
+135deg,
+#5B5FEF,
+#8B5CF6);
+
+color:white;
+
+transition:.3s;
+
+}
+
+.primary:hover{
+
+transform:translateY(-2px);
+
+box-shadow:
+
+0 10px 30px
+
+rgba(91,95,239,.5);
+
+}
+
+/* Login */
+
+.auth-card{
+
+width:420px;
+
+padding:40px;
+
+border-radius:28px;
+
+background:#0f1832;
+
+box-shadow:
+
+0 20px 60px rgba(0,0,0,.5);
+
+}
+
+.auth-card h2{
+
+text-align:center;
+
+margin-bottom:25px;
+
+}
+
+.tabs{
+
+display:flex;
+
+margin-bottom:25px;
+
+gap:10px;
+
+}
+
+.tab{
+
+flex:1;
+
+height:50px;
+
+border:none;
+
+border-radius:14px;
+
+background:#1c2748;
+
+color:white;
+
+font-weight:600;
+
+cursor:pointer;
+
+}
+
+.tab.active{
+
+background:
+
+linear-gradient(
+135deg,
+#5B5FEF,
+#8B5CF6);
+
+}
+
+.auth-card input{
+
+width:100%;
+
+height:52px;
+
+margin-bottom:15px;
+
+padding:15px;
+
+font-size:15px;
+
+border:none;
+
+outline:none;
+
+border-radius:14px;
+
+background:#1d2846;
+
+color:white;
+
+}
+
+/* APP */
+
+#app{
+
+display:none;
+
+width:100%;
+
+height:100%;
+
+background:#081120;
+
+}
+
+header{
+
+height:75px;
+
+display:flex;
+
+justify-content:space-between;
+
+align-items:center;
+
+padding:0 25px;
+
+background:#10182d;
+
+border-bottom:
+
+1px solid rgba(255,255,255,.08);
+
+}
+
+.left{
+
+display:flex;
+
+align-items:center;
+
+gap:15px;
+
+}
+
+.avatar{
+
+width:50px;
+
+height:50px;
+
+border-radius:50%;
+
+background:
+
+linear-gradient(
+135deg,
+#5B5FEF,
+#8B5CF6);
+
+display:flex;
+
+align-items:center;
+
+justify-content:center;
+
+font-weight:700;
+
+font-size:18px;
+
+}
+
+.right{
+
+display:flex;
+
+gap:12px;
+
+}
+
+.right button{
+
+width:46px;
+
+height:46px;
+
+border:none;
+
+border-radius:14px;
+
+background:#172240;
+
+color:white;
+
+cursor:pointer;
+
+transition:.25s;
+
+}
+
+.right button:hover{
+
+background:#5B5FEF;
+
+}
+
+/* Layout */
+
+main{
+
+display:flex;
+
+height:calc(100% - 75px);
+
+}
+
+aside{
+
+width:340px;
+
+background:#0f1832;
+
+border-right:
+
+1px solid rgba(255,255,255,.05);
+
+display:flex;
+
+flex-direction:column;
+
+}
+
+.searchBox{
+
+padding:20px;
+
+}
+
+.searchBox input{
+
+width:100%;
+
+height:48px;
+
+border:none;
+
+outline:none;
+
+padding:14px;
+
+border-radius:14px;
+
+background:#182441;
+
+color:white;
+
+}
+
+#recentChats{
+
+flex:1;
+
+overflow:auto;
+
+}
+
+.chatItem{
+
+display:flex;
+
+gap:15px;
+
+padding:18px;
+
+cursor:pointer;
+
+transition:.25s;
+
+}
+
+.chatItem:hover{
+
+background:#172240;
+
+}
+
+.chatItem.active{
+
+background:#5B5FEF22;
+
+}
+
+.chatName{
+
+font-weight:700;
+
+}
+
+.chatLast{
+
+font-size:13px;
+
+color:#a9b2ce;
+
+margin-top:5px;
+
+}
+
+/* Chat */
+
+#chatArea{
+
+flex:1;
+
+display:flex;
+
+flex-direction:column;
+
+}
+
+#chatHeader{
+
+height:75px;
+
+display:flex;
+
+align-items:center;
+
+justify-content:space-between;
+
+padding:0 20px;
+
+background:#10182d;
+
+}
+
+.chatUser{
+
+display:flex;
+
+align-items:center;
+
+gap:15px;
+
+}
+
+.actions{
+
+display:flex;
+
+gap:10px;
+
+}
+
+.actions button{
+
+width:46px;
+
+height:46px;
+
+border:none;
+
+border-radius:14px;
+
+cursor:pointer;
+
+background:#172240;
+
+color:white;
+
+transition:.25s;
+
+}
+
+.actions button:hover{
+
+background:#5B5FEF;
+
+}
+
+#messages{
+
+flex:1;
+
+overflow:auto;
+
+padding:25px;
+
+display:flex;
+
+flex-direction:column;
+
+gap:14px;
+
+background:
+
+linear-gradient(
+180deg,
+#081120,
+#10182d);
+
+}
+
+.message{
+
+max-width:75%;
+
+padding:15px 18px;
+
+border-radius:20px;
+
+font-size:15px;
+
+line-height:1.5;
+
+}
+
+.message.me{
+
+align-self:flex-end;
+
+background:
+
+linear-gradient(
+135deg,
+#5B5FEF,
+#8B5CF6);
+
+}
+
+.message.them{
+
+align-self:flex-start;
+
+background:#1a2544;
+
+}
+
+.message small{
+
+display:block;
+
+margin-top:8px;
+
+font-size:11px;
+
+opacity:.6;
+
+}
+
+/* Composer */
+
+#composer{
+
+height:78px;
+
+display:flex;
+
+align-items:center;
+
+gap:10px;
+
+padding:15px;
+
+background:#10182d;
+
+}
+
+#composer button{
+
+width:46px;
+
+height:46px;
+
+border:none;
+
+border-radius:50%;
+
+background:#172240;
+
+color:white;
+
+cursor:pointer;
+
+transition:.25s;
+
+}
+
+#composer button:hover{
+
+background:#5B5FEF;
+
+}
+
+#messageInput{
+
+flex:1;
+
+height:50px;
+
+border:none;
+
+outline:none;
+
+padding:15px;
+
+border-radius:30px;
+
+background:#172240;
+
+color:white;
+
+font-size:15px;
+
+}
+
+/* Mobile */
+
+@media(max-width:760px){
+
+aside{
+
+width:100%;
+
+}
+
+#chatArea{
+
+display:none;
+
+}
+
+#chatArea.mobile{
+
+display:flex;
+
+position:absolute;
+
+inset:75px 0 0 0;
+
+z-index:10;
+
+}
+
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- SPLASH -->
+<div id="splash" class="screen active">
+
+    <div class="logo">
+
+        <div class="shield">
+
+            <span>SC</span>
+
+        </div>
+
+    </div>
+
+    <h1>SecureChat</h1>
+
+    <p>
+        Private • Fast • Encrypted
+    </p>
+
+</div>
+
+<!-- WELCOME -->
+
+<div id="welcome" class="screen">
+
+<div class="card">
+
+<h2>Welcome to SecureChat</h2>
+
+<p>
+Private messaging built for speed and privacy.
+</p>
+
+<div class="features">
+
+<div class="feature">
+
+<span class="material-symbols-rounded">
+lock
+</span>
+
+<span>
+End-to-End Encryption Ready
+</span>
+
+</div>
+
+<div class="feature">
+
+<span class="material-symbols-rounded">
+call
+</span>
+
+<span>
+Crystal Clear Audio Calls
+</span>
+
+</div>
+
+<div class="feature">
+
+<span class="material-symbols-rounded">
+videocam
+</span>
+
+<span>
+HD Video Calls
+</span>
+
+</div>
+
+<div class="feature">
+
+<span class="material-symbols-rounded">
+photo_camera
+</span>
+
+<span>
+Camera & Gallery
+</span>
+
+</div>
+
+<div class="feature">
+
+<span class="material-symbols-rounded">
+bolt
+</span>
+
+<span>
+Realtime Messaging
+</span>
+
+</div>
+
+</div>
+
+<button id="btnStart" class="primary">
+
+Get Started
+
+</button>
+
+</div>
+
+</div>
+
+<!-- AUTH -->
+
+<div id="auth" class="screen">
+
+<div class="auth-card">
+
+<h2>SecureChat</h2>
+
+<div class="tabs">
+
+<button id="loginTab" class="tab active">
+
+Sign In
+
+</button>
+
+<button id="registerTab" class="tab">
+
+Register
+
+</button>
+
+</div>
+
+<div id="loginBox">
+
+<input
+id="loginPhone"
+type="text"
+placeholder="Phone Number">
+
+<input
+id="loginPassword"
+type="password"
+placeholder="Password">
+
+<button id="btnLogin" class="primary">
+
+Login
+
+</button>
+
+</div>
+
+<div
+id="registerBox"
+style="display:none;">
+
+<input
+id="regName"
+type="text"
+placeholder="Full Name">
+
+<input
+id="regPhone"
+type="text"
+placeholder="Phone Number">
+
+<input
+id="regPassword"
+type="password"
+placeholder="Password">
+
+<button
+id="btnRegister"
+class="primary">
+
+Create Account
+
+</button>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- APP -->
+
+<div id="app">
+
+<header>
+
+<div class="left">
+
+<div class="avatar" id="meAvatar">
+
+SC
+
+</div>
+
+<div>
+
+<h3 id="myName">
+
+SecureChat
+
+</h3>
+
+<small id="myStatus">
+
+Online
+
+</small>
+
+</div>
+
+</div>
+
+<div class="right">
+
+<button>
+
+<span class="material-symbols-rounded">
+
+search
+
+</span>
+
+</button>
+
+<button>
+
+<span class="material-symbols-rounded">
+
+notifications
+
+</span>
+
+</button>
+
+<button>
+
+<span class="material-symbols-rounded">
+
+settings
+
+</span>
+
+</button>
+
+</div>
+
+</header>
+
+<main>
+
+<!-- SIDEBAR -->
+
+<aside>
+
+<div class="searchBox">
+
+<input
+
+id="search"
+
+placeholder="Search people">
+
+</div>
+
+<div id="recentChats">
+
+</div>
+
+</aside>
+
+<!-- CHAT -->
+
+<section id="chatArea">
+
+<div id="chatHeader">
+
+<div class="chatUser">
+
+<div
+id="chatAvatar"
+class="avatar">
+
+A
+
+</div>
+
+<div>
+
+<h3
+id="chatName">
+
+Select Chat
+
+</h3>
+
+<small
+id="chatLastSeen">
+
+Online
+
+</small>
+
+</div>
+
+</div>
+
+<div class="actions">
+
+<button id="audioCall">
+
+<span class="material-symbols-rounded">
+
+call
+
+</span>
+
+</button>
+
+<button id="videoCall">
+
+<span class="material-symbols-rounded">
+
+videocam
+
+</span>
+
+</button>
+
+<button>
+
+<span class="material-symbols-rounded">
+
+more_vert
+
+</span>
+
+</button>
+
+</div>
+
+</div>
+
+<div id="messages">
+
+</div>
+
+<div id="composer">
+
+<button id="emojiBtn">
+
+<span class="material-symbols-rounded">
+
+mood
+
+</span>
+
+</button>
+
+<button id="cameraBtn">
+
+<span class="material-symbols-rounded">
+
+photo_camera
+
+</span>
+
+</button>
+
+<button id="galleryBtn">
+
+<span class="material-symbols-rounded">
+
+imagesmode
+
+</span>
+
+</button>
+
+<button id="attachBtn">
+
+<span class="material-symbols-rounded">
+
+attach_file
+
+</span>
+
+</button>
+
+<input
+id="messageInput"
+placeholder="Type a message">
+
+<button id="voiceBtn">
+
+<span class="material-symbols-rounded">
+
+mic
+
+</span>
+
+</button>
+
+<button id="sendBtn">
+
+<span class="material-symbols-rounded">
+
+send
+
+</span>
+
+</button>
+
+</div>
+
+</section>
+
+</main>
+
+</div>
+
+<input
+type="file"
+accept="image/*"
+capture="environment"
+id="cameraInput"
+hidden>
+
+<input
+type="file"
+accept="image/*"
+id="galleryInput"
+hidden>
+
+<input
+type="file"
+id="fileInput"
+hidden>
+
+
+<div id="emojiPanel" style="display:none;position:fixed;left:18px;right:18px;bottom:92px;z-index:9999;background:#10182d;border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:12px;box-shadow:0 20px 70px rgba(0,0,0,.45);gap:8px;flex-wrap:wrap"></div>
+
+<div id="cameraOverlay" style="display:none;position:fixed;inset:0;z-index:99999;background:#050914;align-items:center;justify-content:center;flex-direction:column;color:white">
+  <div style="font-size:22px;font-weight:800;margin-bottom:14px">SecureChat Camera</div>
+  <div style="width:min(92vw,520px);height:min(65vh,620px);background:#000;border-radius:24px;overflow:hidden;display:flex;align-items:center;justify-content:center">
+    <video id="cameraPreview" autoplay playsinline style="width:100%;height:100%;object-fit:cover"></video>
+    <canvas id="cameraCanvas" style="display:none;width:100%;height:100%;object-fit:cover"></canvas>
+  </div>
+  <div style="display:flex;gap:14px;margin-top:18px">
+    <button onclick="switchPhoneCamera()" style="width:58px;height:58px;border-radius:50%;border:0;background:#172240;color:white;font-size:22px">↻</button>
+    <button onclick="captureCameraPhoto()" style="width:70px;height:70px;border-radius:50%;border:0;background:linear-gradient(135deg,#5B5FEF,#8B5CF6);color:white;font-size:28px">●</button>
+    <button onclick="sendCapturedCameraPhoto()" style="width:58px;height:58px;border-radius:50%;border:0;background:#18C964;color:white;font-size:22px">✓</button>
+    <button onclick="closeCameraOverlay()" style="width:58px;height:58px;border-radius:50%;border:0;background:#FF4D6D;color:white;font-size:22px">×</button>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+
+const APP = {
+  token: null,
+  user: null,
+  socket: null,
+  contacts: [],
+  recentChats: [],
+  active: null,
+  messages: {},
+  cameraStream: null,
+  cameraFacing: "environment",
+  capturedPhoto: null
+};
+
+function show(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  const el = $(id);
+  if (el) el.classList.add("active");
+}
+
+function apiHeaders() {
+  const h = { "Content-Type": "application/json" };
+  if (APP.token) h.Authorization = "Bearer " + APP.token;
+  return h;
+}
+
+async function api(url, method = "GET", body = null) {
+  const res = await fetch(url, {
+    method,
+    headers: apiHeaders(),
+    body: body ? JSON.stringify(body) : undefined
+  });
+
+  let data = {};
+  try { data = await res.json(); } catch {}
+
+  if (!res.ok) throw new Error(data.error || data.message || "Request failed");
+  return data;
+}
+
+function initials(name) {
+  return (name || "?").trim().slice(0, 2).toUpperCase();
+}
+
+function convId(a, b) {
+  return [String(a), String(b)].sort().join("-");
+}
+
+function timeShort(v) {
+  try {
+    return new Date(v || Date.now()).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  } catch {
+    return "";
+  }
+}
+
+function escapeHtml(s) {
+  return String(s ?? "").replace(/[&<>"']/g, m => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  }[m]));
+}
+
+function initApp() {
+  if ($("splash")) setTimeout(() => show("welcome"), 1200);
+
+  $("btnStart").onclick = () => show("auth");
+
+  $("loginTab").onclick = () => {
+    $("loginTab").classList.add("active");
+    $("registerTab").classList.remove("active");
+    $("loginBox").style.display = "block";
+    $("registerBox").style.display = "none";
+  };
+
+  $("registerTab").onclick = () => {
+    $("registerTab").classList.add("active");
+    $("loginTab").classList.remove("active");
+    $("registerBox").style.display = "block";
+    $("loginBox").style.display = "none";
+  };
+
+  $("btnRegister").onclick = async () => {
+    try {
+      const r = await api("/api/register", "POST", {
+        username: $("regName").value.trim(),
+        phone: $("regPhone").value.trim(),
+        password: $("regPassword").value
+      });
+      loginSuccess(r);
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  $("btnLogin").onclick = async () => {
+    try {
+      const r = await api("/api/login", "POST", {
+        phone: $("loginPhone").value.trim(),
+        password: $("loginPassword").value
+      });
+      loginSuccess(r);
+    } catch (e) {
+      alert(e.message);
+    }
+  };
+
+  $("search").addEventListener("input", searchContacts);
+  $("sendBtn").onclick = sendMessage;
+
+  $("messageInput").addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  });
+
+  $("messageInput").addEventListener("input", handleTyping);
+
+  $("emojiBtn").onclick = toggleEmojiPanel;
+  $("cameraBtn").onclick = openCameraOverlay;
+  $("galleryBtn").onclick = () => $("galleryInput").click();
+  $("attachBtn").onclick = () => $("fileInput").click();
+
+  $("cameraInput").addEventListener("change", sendImage);
+  $("galleryInput").addEventListener("change", sendImage);
+  $("fileInput").addEventListener("change", sendFile);
+
+  $("audioCall").onclick = () => alert("Audio call will be added after messaging is stable.");
+  $("videoCall").onclick = () => alert("Video call will be added after messaging is stable.");
+
+  const t = localStorage.getItem("sc_token");
+  const u = localStorage.getItem("sc_user");
+
+  if (t && u) {
+    try {
+      APP.token = t;
+      APP.user = JSON.parse(u);
+      enterApp();
+    } catch {
+      localStorage.clear();
+    }
+  }
+}
+
+function loginSuccess(r) {
+  APP.token = r.token;
+  APP.user = r.user;
+
+  localStorage.setItem("sc_token", APP.token);
+  localStorage.setItem("sc_user", JSON.stringify(APP.user));
+
+  enterApp();
+}
+
+function enterApp() {
+  $("myName").textContent = APP.user.username || "User";
+  $("myStatus").textContent = "Online";
+  $("meAvatar").textContent = initials(APP.user.username);
+
+  $("splash").style.display = "none";
+  $("welcome").style.display = "none";
+  $("auth").style.display = "none";
+  $("app").style.display = "block";
+
+  connectSocket();
+  loadRecentChats();
+}
+
+
+const EMOJIS = "😀 😃 😄 😁 😆 😅 😂 🙂 😊 😍 😘 😎 😢 😭 😡 👍 👎 🙏 🔥 ❤️ 🎉 ✅ 💯".split(" ");
+
+function setupEmojiPanel() {
+  const panel = $("emojiPanel");
+  if (!panel) return;
+  panel.innerHTML = "";
+  EMOJIS.forEach(e => {
+    const b = document.createElement("button");
+    b.textContent = e;
+    b.style.width = "38px";
+    b.style.height = "38px";
+    b.style.border = "0";
+    b.style.borderRadius = "12px";
+    b.style.background = "#172240";
+    b.style.fontSize = "22px";
+    b.onclick = () => {
+      $("messageInput").value += e;
+      $("messageInput").focus();
+    };
+    panel.appendChild(b);
+  });
+}
+
+function toggleEmojiPanel() {
+  setupEmojiPanel();
+  const panel = $("emojiPanel");
+  panel.style.display = panel.style.display === "flex" ? "none" : "flex";
+}
+
+async function loadRecentChats() {
+  const box = $("recentChats");
+  box.innerHTML = `<div style="padding:25px;color:#a9b2ce;text-align:center">Loading recent chats...</div>`;
+
+  try {
+    const chats = await api("/api/chats");
+    APP.recentChats = Array.isArray(chats) ? chats : [];
+    APP.contacts = APP.recentChats
+      .map(c => c.contact || c.user || c)
+      .filter(c => c && c.id);
+
+    APP.recentChats.forEach(ch => {
+      const c = ch.contact || ch.user || ch;
+      const id = ch.conversationId || (c && convId(APP.user.id, c.id));
+      if (id && ch.lastMessage) {
+        APP.messages[id] = APP.messages[id] || [];
+        APP.messages[id].lastPreview = {
+          text: ch.lastMessage.text || ch.lastMessage.ciphertext || "",
+          type: (ch.lastMessage.metadata && ch.lastMessage.metadata.kind) || "text",
+          name: ch.lastMessage.metadata && ch.lastMessage.metadata.name
+        };
+      }
+    });
+
+    if (!APP.contacts.length) {
+      showSearchHint();
+      return;
+    }
+
+    renderContacts();
+  } catch (e) {
+    showSearchHint();
+  }
+}
+
+async function openCameraOverlay() {
+  if (!APP.active) {
+    alert("Select a contact first");
+    return;
+  }
+
+  $("cameraOverlay").style.display = "flex";
+  await startPhoneCamera();
+}
+
+async function startPhoneCamera() {
+  if (APP.cameraStream) {
+    APP.cameraStream.getTracks().forEach(t => t.stop());
+  }
+
+  APP.capturedPhoto = null;
+  $("cameraCanvas").style.display = "none";
+  $("cameraPreview").style.display = "block";
+
+  try {
+    APP.cameraStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: APP.cameraFacing },
+      audio: false
+    });
+    $("cameraPreview").srcObject = APP.cameraStream;
+  } catch (e) {
+    alert("Camera permission denied or camera not available.");
+    closeCameraOverlay();
+  }
+}
+
+function switchPhoneCamera() {
+  APP.cameraFacing = APP.cameraFacing === "environment" ? "user" : "environment";
+  startPhoneCamera();
+}
+
+function captureCameraPhoto() {
+  const video = $("cameraPreview");
+  const canvas = $("cameraCanvas");
+  const w = video.videoWidth || 720;
+  const h = video.videoHeight || 1280;
+
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext("2d").drawImage(video, 0, 0, w, h);
+
+  APP.capturedPhoto = canvas.toDataURL("image/jpeg", 0.85);
+
+  video.style.display = "none";
+  canvas.style.display = "block";
+}
+
+async function sendCapturedCameraPhoto() {
+  if (!APP.capturedPhoto) {
+    captureCameraPhoto();
+    return;
+  }
+
+  await sendPayload({
+    type: "image",
+    text: "Photo",
+    data: APP.capturedPhoto,
+    name: "camera.jpg"
+  });
+
+  closeCameraOverlay();
+}
+
+function closeCameraOverlay() {
+  if (APP.cameraStream) {
+    APP.cameraStream.getTracks().forEach(t => t.stop());
+  }
+  APP.cameraStream = null;
+  APP.capturedPhoto = null;
+  $("cameraOverlay").style.display = "none";
+}
+
+function showSearchHint() {
+  $("recentChats").innerHTML = `
+    <div style="padding:25px;color:#a9b2ce;text-align:center">
+      Type a name or phone number to search.
+    </div>
+  `;
+}
+
+async function searchContacts() {
+  const q = $("search").value.trim();
+  const box = $("recentChats");
+
+  if (q.length < 2) {
+    APP.contacts = [];
+    showSearchHint();
+    return;
+  }
+
+  box.innerHTML = `
+    <div style="padding:25px;color:#a9b2ce;text-align:center">
+      Searching...
+    </div>
+  `;
+
+  try {
+    const users = await api("/api/users?q=" + encodeURIComponent(q));
+    APP.contacts = Array.isArray(users) ? users : [];
+    renderContacts();
+  } catch (e) {
+    box.innerHTML = `
+      <div style="padding:25px;color:#ff6b6b;text-align:center">
+        ${escapeHtml(e.message)}
+      </div>
+    `;
+  }
+}
+
+function renderContacts() {
+  const box = $("recentChats");
+  box.innerHTML = "";
+
+  if (!APP.contacts.length) {
+    box.innerHTML = `
+      <div style="padding:25px;color:#a9b2ce;text-align:center">
+        No contacts found.
+      </div>
+    `;
+    return;
+  }
+
+  APP.contacts.forEach(user => {
+    const id = convId(APP.user.id, user.id);
+    const msgs = APP.messages[id] || [];
+    const lastObj = msgs.length ? msgs[msgs.length - 1] : msgs.lastPreview;
+    const last = lastObj ? previewMessage(lastObj) : (user.phone || "Tap to chat");
+
+    const div = document.createElement("div");
+    div.className = "chatItem" + (APP.active && String(APP.active.id) === String(user.id) ? " active" : "");
+    div.onclick = () => openChat(user);
+
+    div.innerHTML = `
+      <div class="avatar">${initials(user.username)}</div>
+      <div style="flex:1;min-width:0">
+        <div class="chatName">${escapeHtml(user.username || "User")}</div>
+        <div class="chatLast">${escapeHtml(last)}</div>
+      </div>
+    `;
+
+    box.appendChild(div);
+  });
+}
+
+function previewMessage(m) {
+  if (m.type === "image") return "Photo";
+  if (m.type === "file") return "File: " + (m.name || "Attachment");
+  return m.text || "Message";
+}
+
+async function openChat(user) {
+  APP.active = user;
+
+  $("chatName").textContent = user.username || "User";
+  $("chatAvatar").textContent = initials(user.username);
+  $("chatLastSeen").textContent = user.online ? "Online" : "Private conversation";
+
+  if (window.innerWidth <= 760) $("chatArea").classList.add("mobile");
+
+  await loadMessages();
+  renderContacts();
+}
+
+async function loadMessages() {
+  if (!APP.active) return;
+
+  const id = convId(APP.user.id, APP.active.id);
+
+  try {
+    const rows = await api("/api/messages/" + encodeURIComponent(id));
+    APP.messages[id] = rows.map(normalizeMessage);
+  } catch {
+    APP.messages[id] = APP.messages[id] || [];
+  }
+
+  renderMessages();
+}
+
+function normalizeMessage(m) {
+  return {
+    id: m.id,
+    senderId: m.senderId || m.sender_id,
+    recipientId: m.recipientId || m.recipient_id,
+    text: m.text || m.ciphertext || "",
+    timestamp: m.timestamp || m.created_at,
+    type: (m.metadata && m.metadata.kind) || "text",
+    data: m.metadata && m.metadata.data,
+    name: m.metadata && m.metadata.name,
+    local: false
+  };
+}
+
+function renderMessages() {
+  const box = $("messages");
+  box.innerHTML = "";
+
+  if (!APP.active) return;
+
+  const id = convId(APP.user.id, APP.active.id);
+  const msgs = APP.messages[id] || [];
+
+  if (!msgs.length) {
+    box.innerHTML = `
+      <div style="text-align:center;color:#a9b2ce;margin-top:40px">
+        No messages yet. Say hello.
+      </div>
+    `;
+    return;
+  }
+
+  msgs.forEach(m => {
+    const mine = String(m.senderId) === String(APP.user.id);
+    const div = document.createElement("div");
+    div.className = "message " + (mine ? "me" : "them");
+
+    let content = "";
+
+    if (m.type === "image" && m.data) {
+      content = `<img src="${m.data}" style="max-width:240px;border-radius:14px;display:block">`;
+    } else if (m.type === "file") {
+      content = `<strong>Attachment:</strong> ${escapeHtml(m.name || "File")}`;
+    } else {
+      content = escapeHtml(m.text || "");
+    }
+
+    const status = mine ? (m.local ? "sending..." : "✓") : "";
+
+    div.innerHTML = `
+      ${content}
+      <small>${timeShort(m.timestamp)} ${status}</small>
+    `;
+
+    box.appendChild(div);
+  });
+
+  box.scrollTop = box.scrollHeight;
+}
+
+async function sendMessage() {
+  if (!APP.active) {
+    alert("Select a contact first");
+    return;
+  }
+
+  const input = $("messageInput");
+  const text = input.value.trim();
+
+  if (!text) return;
+
+  input.value = "";
+
+  await sendPayload({ type: "text", text });
+}
+
+async function sendPayload(payload) {
+  const id = convId(APP.user.id, APP.active.id);
+
+  const localMessage = {
+    id: "local-" + Date.now(),
+    senderId: APP.user.id,
+    recipientId: APP.active.id,
+    text: payload.text || payload.name || payload.type,
+    timestamp: new Date().toISOString(),
+    type: payload.type || "text",
+    data: payload.data,
+    name: payload.name,
+    local: true
+  };
+
+  APP.messages[id] = APP.messages[id] || [];
+  APP.messages[id].push(localMessage);
+
+  renderMessages();
+  renderContacts();
+
+  try {
+    const saved = await api("/api/messages", "POST", {
+      conversationId: id,
+      recipientId: APP.active.id,
+      iv: "plain",
+      ciphertext: localMessage.text,
+      messageType: "text",
+      metadata: {
+        kind: localMessage.type,
+        data: localMessage.data,
+        name: localMessage.name
+      }
+    });
+
+    localMessage.id = saved.id || localMessage.id;
+    localMessage.local = false;
+    renderMessages();
+  } catch (e) {
+    alert("Message failed: " + e.message);
+  }
+}
+
+function sendImage(e) {
+  const file = e.target.files[0];
+  e.target.value = "";
+
+  if (!file || !APP.active) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    sendPayload({
+      type: "image",
+      text: "Photo",
+      data: reader.result,
+      name: file.name
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function sendFile(e) {
+  const file = e.target.files[0];
+  e.target.value = "";
+
+  if (!file || !APP.active) return;
+
+  sendPayload({
+    type: "file",
+    text: "File: " + file.name,
+    name: file.name
+  });
+}
+
+let typingTimer = null;
+
+function handleTyping() {
+  if (!APP.active || !APP.socket) return;
+
+  APP.socket.emit("typing:start", {
+    recipientId: APP.active.id,
+    conversationId: convId(APP.user.id, APP.active.id)
+  });
+
+  clearTimeout(typingTimer);
+
+  typingTimer = setTimeout(() => {
+    APP.socket.emit("typing:stop", {
+      recipientId: APP.active.id
+    });
+  }, 1000);
+}
+
+function connectSocket() {
+  if (typeof io === "undefined") {
+    console.warn("Socket.IO not loaded");
+    return;
+  }
+
+  APP.socket = io({
+    auth: { token: APP.token },
+    transports: ["websocket", "polling"]
+  });
+
+  APP.socket.on("connect", () => {
+    $("myStatus").textContent = "Online";
+  });
+
+  APP.socket.on("disconnect", () => {
+    $("myStatus").textContent = "Offline";
+  });
+
+  APP.socket.on("message:new", m => {
+    const other = String(m.senderId) === String(APP.user.id) ? m.recipientId : m.senderId;
+    const id = convId(APP.user.id, other);
+
+    APP.messages[id] = APP.messages[id] || [];
+    APP.messages[id].push(normalizeMessage(m));
+
+    if (APP.active && String(APP.active.id) === String(other)) {
+      renderMessages();
+      APP.socket.emit("message:read", {
+        messageId: m.id,
+        senderId: m.senderId
+      });
+    }
+
+    renderContacts();
+  });
+
+  APP.socket.on("typing:start", data => {
+    if (APP.active && String(APP.active.id) === String(data.userId)) {
+      $("chatLastSeen").textContent = "Typing...";
+    }
+  });
+
+  APP.socket.on("typing:stop", data => {
+    if (APP.active && String(APP.active.id) === String(data.userId)) {
+      $("chatLastSeen").textContent = APP.active.online ? "Online" : "Private conversation";
+    }
+  });
+}
+
+function logout() {
+  localStorage.clear();
+  location.reload();
+}
+
+document.addEventListener("DOMContentLoaded", initApp);
+</script>
+</body>
+</html>
