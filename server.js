@@ -151,23 +151,74 @@ app.post("/api/register", async (req, res) => {
 });
 
 app.post("/api/login", async (req, res) => {
-  const phone = clean(req.body.phone);
-  const password = req.body.password || "";
 
-  try {
-    const r = await pool.query("SELECT * FROM users WHERE phone=$1", [phone]);
-    const user = r.rows[0];
+    try {
 
-    if (!user || !(await bcrypt.compare(password, user.password_hash))) {
-      return res.status(401).json({ error: "Invalid phone or password." });
+        const phone = clean(req.body.phone);
+        const password = req.body.password || "";
+
+        if (!phone || !password) {
+            return res.status(400).json({
+                error: "Phone number and password are required."
+            });
+        }
+
+        const result = await pool.query(
+            `SELECT id, username, phone, password_hash
+             FROM users
+             WHERE phone = $1`,
+            [phone]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(401).json({
+                error: "Invalid phone number or password."
+            });
+        }
+
+        const user = result.rows[0];
+
+        const ok = await bcrypt.compare(
+            password,
+            user.password_hash
+        );
+
+        if (!ok) {
+            return res.status(401).json({
+                error: "Invalid phone number or password."
+            });
+        }
+
+        const token = jwt.sign(
+            {
+                id: user.id,
+                phone: user.phone
+            },
+            JWT_SECRET,
+            {
+                expiresIn: "30d"
+            }
+        );
+
+        res.json({
+            token,
+            user: {
+                id: user.id,
+                username: user.username,
+                phone: user.phone
+            }
+        });
+
+    } catch (err) {
+
+        console.error("login", err);
+
+        res.status(500).json({
+            error: "Login failed."
+        });
+
     }
 
-    await pool.query("UPDATE users SET last_seen=NOW() WHERE id=$1", [user.id]);
-    res.json({ token: sign(user), user: formatUser(user) });
-  } catch (e) {
-    console.error("login", e.message);
-    res.status(500).json({ error: "Login failed." });
-  }
 });
 
 app.get("/api/me", auth, async (req, res) => {
