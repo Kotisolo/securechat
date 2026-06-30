@@ -171,15 +171,30 @@
 <div id="callOverlay" class="overlay hidden">
   <h2 id="callTitle">Call</h2>
   <p id="callStatus">Connecting...</p>
+
   <div id="videoBox" class="video-box hidden">
     <video id="remoteVideo" autoplay playsinline></video>
     <video id="localVideo" autoplay muted playsinline></video>
   </div>
+
   <audio id="remoteAudio" autoplay controls></audio>
+
   <div class="overlay-actions">
-    <button id="muteBtn"><span class="material-symbols-rounded">mic</span></button>
-    <button id="cameraToggleBtn"><span class="material-symbols-rounded">videocam</span></button>
-    <button id="endCallBtn" class="danger"><span class="material-symbols-rounded">call_end</span></button>
+    <button id="minimizeCallBtn">
+      <span class="material-symbols-rounded">keyboard_arrow_down</span>
+    </button>
+
+    <button id="muteBtn">
+      <span class="material-symbols-rounded">mic</span>
+    </button>
+
+    <button id="cameraToggleBtn">
+      <span class="material-symbols-rounded">videocam</span>
+    </button>
+
+    <button id="endCallBtn" class="danger">
+      <span class="material-symbols-rounded">call_end</span>
+    </button>
   </div>
 </div>
   <div id="miniCallBar" class="mini-call hidden">
