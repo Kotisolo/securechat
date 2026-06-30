@@ -1633,6 +1633,317 @@ location.reload();
 }
 
 </script>
+  <script>
+
+// ===============================
+// SecureChat v6 - RESPONSE 5
+// Send / Receive Messages + Socket.IO
+// Paste this after Response 4 script
+// ===============================
+
+// ---------------- SOCKET ----------------
+
+function connectSocket(){
+
+    if(typeof io==="undefined"){
+
+        console.warn("Socket.IO not loaded");
+        return;
+
+    }
+
+    APP.socket=io({
+        auth:{
+            token:APP.token
+        },
+        transports:["websocket","polling"]
+    });
+
+    APP.socket.on("connect",()=>{
+
+        console.log("Socket connected");
+
+    });
+
+    APP.socket.on("disconnect",()=>{
+
+        console.log("Socket disconnected");
+
+    });
+
+    APP.socket.on("message:new",(m)=>{
+
+        const other=
+            String(m.senderId)===String(APP.user.id)
+            ? m.recipientId
+            : m.senderId;
+
+        const id=convId(APP.user.id,other);
+
+        APP.messages[id]=APP.messages[id]||[];
+
+        APP.messages[id].push({
+            id:m.id || Date.now(),
+            senderId:m.senderId,
+            recipientId:m.recipientId,
+            text:m.text || m.ciphertext || "",
+            timestamp:m.timestamp || new Date().toISOString(),
+            type:(m.metadata && m.metadata.kind) || "text",
+            data:m.metadata && m.metadata.data,
+            name:m.metadata && m.metadata.name
+        });
+
+        if(APP.active && String(APP.active.id)===String(other)){
+
+            renderMessages();
+
+            APP.socket.emit("message:read",{
+                messageId:m.id,
+                senderId:m.senderId
+            });
+
+        }
+
+        renderContacts();
+
+    });
+
+    APP.socket.on("typing:start",(data)=>{
+
+        if(APP.active && String(APP.active.id)===String(data.userId)){
+
+            $("chatLastSeen").textContent="Typing...";
+
+        }
+
+    });
+
+    APP.socket.on("typing:stop",(data)=>{
+
+        if(APP.active && String(APP.active.id)===String(data.userId)){
+
+            $("chatLastSeen").textContent=
+                APP.active.online ? "Online" : "Private conversation";
+
+        }
+
+    });
+
+    APP.socket.on("message:read",(data)=>{
+
+        console.log("Message read",data);
+
+    });
+
+}
+
+// ---------------- SEND MESSAGE ----------------
+
+async function sendMessage(){
+
+    if(!APP.active){
+
+        alert("Select a contact first");
+        return;
+
+    }
+
+    const input=$("messageInput");
+
+    const text=input.value.trim();
+
+    if(!text)return;
+
+    input.value="";
+
+    const id=convId(APP.user.id,APP.active.id);
+
+    const localMessage={
+        id:"local-"+Date.now(),
+        senderId:APP.user.id,
+        recipientId:APP.active.id,
+        text:text,
+        timestamp:new Date().toISOString(),
+        type:"text",
+        local:true
+    };
+
+    APP.messages[id]=APP.messages[id]||[];
+
+    APP.messages[id].push(localMessage);
+
+    renderMessages();
+
+    renderContacts();
+
+    try{
+
+        const saved=await api("/api/messages","POST",{
+
+            conversationId:id,
+
+            recipientId:APP.active.id,
+
+            iv:"plain",
+
+            ciphertext:text,
+
+            messageType:"text",
+
+            metadata:{
+                kind:"text"
+            }
+
+        });
+
+        localMessage.id=saved.id || localMessage.id;
+
+        localMessage.local=false;
+
+    }catch(e){
+
+        alert("Message failed: "+e.message);
+
+    }
+
+}
+
+// ---------------- SEND BUTTON ----------------
+
+$("sendBtn").onclick=()=>{
+
+    sendMessage();
+
+};
+
+// ---------------- ENTER TO SEND ----------------
+
+$("messageInput").addEventListener("keydown",(e)=>{
+
+    if(e.key==="Enter" && !e.shiftKey){
+
+        e.preventDefault();
+
+        sendMessage();
+
+    }
+
+});
+
+// ---------------- TYPING INDICATOR ----------------
+
+let typingTimer=null;
+
+$("messageInput").addEventListener("input",()=>{
+
+    if(!APP.active || !APP.socket)return;
+
+    APP.socket.emit("typing:start",{
+
+        recipientId:APP.active.id,
+
+        conversationId:convId(APP.user.id,APP.active.id)
+
+    });
+
+    clearTimeout(typingTimer);
+
+    typingTimer=setTimeout(()=>{
+
+        APP.socket.emit("typing:stop",{
+
+            recipientId:APP.active.id
+
+        });
+
+    },1000);
+
+});
+
+// ---------------- READ CURRENT CHAT ----------------
+
+function markCurrentChatRead(){
+
+    if(!APP.active || !APP.socket)return;
+
+    const id=convId(APP.user.id,APP.active.id);
+
+    const msgs=APP.messages[id] || [];
+
+    msgs.forEach(m=>{
+
+        if(String(m.recipientId)===String(APP.user.id)){
+
+            APP.socket.emit("message:read",{
+
+                messageId:m.id,
+
+                senderId:m.senderId
+
+            });
+
+        }
+
+    });
+
+}
+
+// ---------------- UPDATE RENDER MESSAGE WITH STATUS ----------------
+
+const oldRenderMessages=renderMessages;
+
+renderMessages=function(){
+
+    const box=$("messages");
+
+    box.innerHTML="";
+
+    if(!APP.active)return;
+
+    const id=convId(APP.user.id,APP.active.id);
+
+    const msgs=APP.messages[id] || [];
+
+    if(!msgs.length){
+
+        box.innerHTML=`
+            <div style="text-align:center;color:#a9b2ce;margin-top:40px">
+                No messages yet. Say hello 👋
+            </div>
+        `;
+
+        return;
+
+    }
+
+    msgs.forEach(m=>{
+
+        const mine=String(m.senderId)===String(APP.user.id);
+
+        const div=document.createElement("div");
+
+        div.className="message "+(mine?"me":"them");
+
+        const status=mine
+            ? (m.local ? "sending..." : "✓")
+            : "";
+
+        div.innerHTML=`
+            ${escapeHtml(m.text || "")}
+            <small>${timeShort(m.timestamp)} ${status}</small>
+        `;
+
+        box.appendChild(div);
+
+    });
+
+    box.scrollTop=box.scrollHeight;
+
+    markCurrentChatRead();
+
+};
+
+</script>
 
 </body>
 </html>
