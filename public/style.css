@@ -69,7 +69,47 @@ main{height:calc(100dvh - 74px);display:flex;min-height:0}
 .emoji-panel.on{display:flex}
 .emoji-panel button{width:38px;height:38px;border-radius:12px;background:var(--panel2);font-size:21px}
 .overlay{position:fixed;inset:0;background:#050914;z-index:80;color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;padding:16px}
-.camera-box,.video-box{width:min(92vw,620px);height:min(62vh,640px);background:#000;border-radius:24px;overflow:hidden;position:relative}
+.video-box{
+  width:100vw;
+  height:100vh;
+  background:#000;
+  border-radius:0;
+  overflow:hidden;
+  position:relative;
+}
+
+.camera-box{
+  width:min(92vw,620px);
+  height:min(62vh,640px);
+  background:#000;
+  border-radius:24px;
+  overflow:hidden;
+  position:relative;
+}
+
+.video-box video{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+#remoteVideo{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+
+#localVideo{
+  position:absolute;
+  right:16px;
+  bottom:90px;
+  width:120px;
+  height:160px;
+  border-radius:16px;
+  border:2px solid #fff;
+  object-fit:cover;
+  z-index:5;
+}
 .camera-box video,.camera-box canvas,.video-box video{width:100%;height:100%;object-fit:cover}
 #localVideo{position:absolute;right:14px;bottom:14px;width:120px;height:160px;border-radius:16px;border:2px solid #fff}
 .overlay-actions{display:flex;gap:12px}
