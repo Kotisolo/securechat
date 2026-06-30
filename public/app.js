@@ -86,6 +86,7 @@ $("resetBtn").onclick = resetPassword;
   $("endCallBtn").onclick = () => endCall();
   $("muteBtn").onclick = toggleMute;
   $("cameraToggleBtn").onclick = toggleCamera;
+  $("minimizeCallBtn").onclick = minimizeCall;
 
   $("myProfileBtn").onclick = () => openProfile(APP.user);
   $("contactProfileBtn").onclick = () => APP.active && openProfile(APP.active);
@@ -946,6 +947,23 @@ function cleanupPeerOnly() {
   $("videoBox").classList.add("hidden");
 
   stopCallTimer();
+}
+function minimizeCall() {
+  if (!APP.pc && !APP.stream) return;
+
+  $("callOverlay").classList.add("hidden");
+  $("miniCallBar").classList.remove("hidden");
+
+  $("miniCallName").textContent =
+    APP.active ? APP.active.username : "SecureChat Call";
+
+  $("miniCallIcon").textContent =
+    APP.callType === "video" ? "videocam" : "call";
+}
+
+function restoreCall() {
+  $("miniCallBar").classList.add("hidden");
+  $("callOverlay").classList.remove("hidden");
 }
 
 function endCall(skipEmit = false) {
