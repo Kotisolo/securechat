@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover">
+<title>SecureChat</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:FILL@1" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="splash" class="screen active">
+  <div class="shield">SC</div>
+  <h1>SecureChat</h1>
+  <p>Private • Fast • Modern</p>
+</div>
+
+<div id="welcome" class="screen">
+  <div class="auth-card center">
+    <div class="shield small">SC</div>
+    <h2>Welcome to SecureChat</h2>
+    <p class="muted">Midnight blue private messaging with calls, camera, profiles, and realtime chat.</p>
+    <div class="feature"><span class="material-symbols-rounded">lock</span>Private messaging</div>
+    <div class="feature"><span class="material-symbols-rounded">call</span>Audio calls</div>
+    <div class="feature"><span class="material-symbols-rounded">videocam</span>Video calls</div>
+    <div class="feature"><span class="material-symbols-rounded">photo_camera</span>Camera & gallery</div>
+    <button id="startBtn" class="primary">Get Started</button>
+  </div>
+</div>
+
+<div id="auth" class="screen">
+  <div class="auth-card">
+    <h2>SecureChat</h2>
+    <div class="tabs">
+      <button id="loginTab" class="tab active">Login</button>
+      <button id="registerTab" class="tab">Register</button>
+    </div>
+
+    <div id="loginBox">
+      <input id="loginPhone" placeholder="Phone number">
+      <input id="loginPassword" type="password" placeholder="Password">
+      <button id="loginBtn" class="primary">Login</button>
+    </div>
+
+    <div id="registerBox" class="hidden">
+      <input id="regName" placeholder="Full name">
+      <input id="regPhone" placeholder="Phone number">
+      <input id="regPassword" type="password" placeholder="Password">
+      <button id="registerBtn" class="primary">Create Account</button>
+    </div>
+
+    <div id="authError" class="error"></div>
+  </div>
+</div>
+
+<div id="app">
+  <header class="topbar">
+    <div class="user-chip" id="myProfileBtn">
+      <div id="myAvatar" class="avatar">SC</div>
+      <div>
+        <h3 id="myName">SecureChat</h3>
+        <small id="myStatus">Connecting...</small>
+      </div>
+    </div>
+    <div class="top-actions">
+      <button id="switchBtn" title="Switch account"><span class="material-symbols-rounded">sync</span></button>
+      <button id="logoutBtn" title="Logout"><span class="material-symbols-rounded">logout</span></button>
+    </div>
+  </header>
+
+  <main>
+    <aside id="sidebar">
+      <div class="search-wrap">
+        <span class="material-symbols-rounded">search</span>
+        <input id="searchInput" placeholder="Search name or phone">
+      </div>
+      <div class="section-title">Chats</div>
+      <div id="chatList"></div>
+    </aside>
+
+    <section id="chatPanel">
+      <div id="emptyChat" class="empty-chat">
+        <div class="shield small">SC</div>
+        <h2>Select a chat</h2>
+        <p class="muted">Search a user or open a recent conversation.</p>
+      </div>
+
+      <div id="chatHeader" class="chat-header hidden">
+        <button id="backBtn" class="mobile-only"><span class="material-symbols-rounded">arrow_back</span></button>
+        <div class="user-chip clickable" id="contactProfileBtn">
+          <div id="contactAvatar" class="avatar">?</div>
+          <div>
+            <h3 id="contactName">Contact</h3>
+            <small id="contactStatus">Private conversation</small>
+          </div>
+        </div>
+        <div class="chat-actions">
+          <button id="audioBtn"><span class="material-symbols-rounded">call</span></button>
+          <button id="videoBtn"><span class="material-symbols-rounded">videocam</span></button>
+        </div>
+      </div>
+
+      <div id="messages" class="messages hidden"></div>
+
+      <div id="composer" class="composer hidden">
+        <button id="emojiBtn"><span class="material-symbols-rounded">mood</span></button>
+        <button id="cameraBtn"><span class="material-symbols-rounded">photo_camera</span></button>
+        <button id="galleryBtn"><span class="material-symbols-rounded">imagesmode</span></button>
+        <button id="fileBtn"><span class="material-symbols-rounded">attach_file</span></button>
+        <input id="messageInput" placeholder="Message">
+        <button id="sendBtn" class="send"><span class="material-symbols-rounded">send</span></button>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="emojiPanel" class="emoji-panel"></div>
+
+<input id="galleryInput" type="file" accept="image/*" hidden>
+<input id="fileInput" type="file" hidden>
+
+<div id="cameraOverlay" class="overlay hidden">
+  <h2>Camera</h2>
+  <div class="camera-box">
+    <video id="cameraVideo" autoplay playsinline></video>
+    <canvas id="cameraCanvas" class="hidden"></canvas>
+  </div>
+  <div class="overlay-actions">
+    <button id="switchCameraBtn"><span class="material-symbols-rounded">cameraswitch</span></button>
+    <button id="captureBtn" class="capture"><span class="material-symbols-rounded">radio_button_checked</span></button>
+    <button id="sendPhotoBtn"><span class="material-symbols-rounded">check</span></button>
+    <button id="closeCameraBtn" class="danger"><span class="material-symbols-rounded">close</span></button>
+  </div>
+</div>
+
+<div id="callOverlay" class="overlay hidden">
+  <h2 id="callTitle">Call</h2>
+  <p id="callStatus">Connecting...</p>
+  <div id="videoBox" class="video-box hidden">
+    <video id="remoteVideo" autoplay playsinline></video>
+    <video id="localVideo" autoplay muted playsinline></video>
+  </div>
+  <audio id="remoteAudio" autoplay controls></audio>
+  <div class="overlay-actions">
+    <button id="muteBtn"><span class="material-symbols-rounded">mic</span></button>
+    <button id="cameraToggleBtn"><span class="material-symbols-rounded">videocam</span></button>
+    <button id="endCallBtn" class="danger"><span class="material-symbols-rounded">call_end</span></button>
+  </div>
+</div>
+
+<div id="profileModal" class="modal hidden">
+  <div class="modal-card">
+    <button id="closeProfileBtn" class="x"><span class="material-symbols-rounded">close</span></button>
+    <div id="profileAvatar" class="avatar big">SC</div>
+    <h2 id="profileName">User</h2>
+    <p id="profilePhone" class="muted"></p>
+    <p id="profileBio"></p>
+    <div class="feature"><span class="material-symbols-rounded">info</span>SecureChat v2.0</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
