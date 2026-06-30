@@ -29,7 +29,7 @@ const EMOJIS = "😀 😃 😄 😁 😆 😅 😂 🙂 😊 😍 😘 😎 😢
 
 let callTimer = null;
 let callStartedAt = null;
-let pendingIceCandidates = [];
+
 
 document.addEventListener("DOMContentLoaded", init);
 
@@ -649,33 +649,30 @@ function connectSocket() {
   APP.socket.on("call:incoming", incomingCall);
 
   APP.socket.on("call:answer", async d => {
-    try {
-      if (!APP.pc) return;
+  if (!APP.pc) return;
 
-      await APP.pc.setRemoteDescription(new RTCSessionDescription(d.answer));
-      await addPendingIceCandidates();
+  try {
+    await APP.pc.setRemoteDescription(
+      new RTCSessionDescription(d.answer)
+    );
 
-      setCallStatus("Connecting audio...");
-    } catch (e) {
-      console.error("call:answer error:", e);
-      setCallStatus("Call answer failed.");
-    }
-  });
+    setCallStatus("Connected");
+  } catch (e) {
+    console.error(e);
+  }
+});
 
   APP.socket.on("call:ice-candidate", async d => {
-    try {
-      if (!APP.pc || !d.candidate) return;
+  if (!APP.pc || !d.candidate) return;
 
-      if (!APP.pc.remoteDescription) {
-        pendingIceCandidates.push(d.candidate);
-        return;
-      }
-
-      await APP.pc.addIceCandidate(new RTCIceCandidate(d.candidate));
-    } catch (e) {
-      console.warn("ICE candidate error:", e.message);
-    }
-  });
+  try {
+    await APP.pc.addIceCandidate(
+      new RTCIceCandidate(d.candidate)
+    );
+  } catch (e) {
+    console.error(e);
+  }
+});
 
   APP.socket.on("call:ended", () => endCall(true));
 
@@ -740,7 +737,7 @@ async function createPeer(type) {
   cleanupPeerOnly();
 
   APP.pc = new RTCPeerConnection(rtcConfig);
-  pendingIceCandidates = [];
+  
 
   APP.pc.ontrack = event => {
     const stream = event.streams && event.streams[0];
@@ -817,19 +814,7 @@ async function createPeer(type) {
   return APP.pc;
 }
 
-async function addPendingIceCandidates() {
-  if (!APP.pc || !APP.pc.remoteDescription) return;
 
-  while (pendingIceCandidates.length) {
-    const candidate = pendingIceCandidates.shift();
-
-    try {
-      await APP.pc.addIceCandidate(new RTCIceCandidate(candidate));
-    } catch (e) {
-      console.warn("Queued ICE candidate failed:", e.message);
-    }
-  }
-}
 
 async function startCall(type) {
   if (!APP.active) return toast("Select a contact first");
